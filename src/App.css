@@ -1,0 +1,7619 @@
+\* {
+
+
+
+  box-sizing: border-box;
+
+
+
+}
+
+
+
+
+
+
+
+:root {
+
+
+
+  font-family: Arial, Helvetica, sans-serif;
+
+
+
+  color: #FFFFFF;
+
+
+
+  background: #0B0710;
+
+
+
+}
+
+
+
+
+
+
+
+body {
+
+
+
+  margin: 0;
+
+
+
+  min-width: 320px;
+
+
+
+  background:
+
+
+
+    radial-gradient(
+
+
+
+      circle at top,
+
+
+
+      #1A0D24 0,
+
+
+
+      #0B0710 450px
+
+
+
+    );
+
+
+
+  color: #FFFFFF;
+
+
+
+}
+
+
+
+
+
+
+
+button,
+
+
+
+input,
+
+
+
+select,
+
+
+
+textarea {
+
+
+
+  font: inherit;
+
+
+
+}
+
+
+
+
+
+
+
+button {
+
+
+
+  transition:
+
+
+
+    background 0.15s ease,
+
+
+
+    border-color 0.15s ease,
+
+
+
+    opacity 0.15s ease,
+
+
+
+    transform 0.15s ease;
+
+
+
+}
+
+
+
+
+
+
+
+button:active {
+
+
+
+  transform: scale(0.98);
+
+
+
+}
+
+
+
+
+
+
+
+.app {
+
+
+
+  min-height: 100vh;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   HEADER
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.header {
+
+
+
+  position: sticky;
+
+
+
+  top: 0;
+
+
+
+  z-index: 50;
+
+
+
+
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns: auto 1fr auto;
+
+
+
+  align-items: center;
+
+
+
+  gap: 25px;
+
+
+
+
+
+
+
+  padding: 18px 40px;
+
+
+
+
+
+
+
+  border-bottom: 1px solid #3A174A;
+
+
+
+
+
+
+
+  background: rgba(21, 24, 33, 0.96);
+
+
+
+  backdrop-filter: blur(12px);
+
+
+
+}
+
+
+
+
+
+
+
+.logo-area {
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.logo-area h1 {
+
+
+
+  margin: 0;
+
+
+
+  font-size: 24px;
+
+
+
+}
+
+
+
+
+
+
+
+.logo-area p {
+
+
+
+  margin: 4px 0 0;
+
+
+
+  color: #C9A9D3;
+
+
+
+  font-size: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.main-nav {
+
+
+
+  display: flex;
+
+
+
+  justify-content: center;
+
+
+
+  gap: 5px;
+
+
+
+}
+
+
+
+
+
+
+
+.main-nav button {
+
+
+
+  padding: 10px 14px;
+
+
+
+
+
+
+
+  border: 1px solid transparent;
+
+
+
+  border-radius: 8px;
+
+
+
+
+
+
+
+  background: transparent;
+
+
+
+  color: #C9A9D3;
+
+
+
+
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.main-nav button:hover {
+
+
+
+  background: #25102F;
+
+
+
+  color: #FFFFFF;
+
+
+
+}
+
+
+
+
+
+
+
+.main-nav button.active {
+
+
+
+  background: #32143F;
+
+
+
+  border-color: #5B276C;
+
+
+
+  color: #FFFFFF;
+
+
+
+}
+
+
+
+
+
+
+
+.event-controls {
+
+
+
+  display: flex;
+
+
+
+  align-items: flex-end;
+
+
+
+}
+
+
+
+
+
+
+
+.selector-group {
+
+
+
+  display: flex;
+
+
+
+  flex-direction: column;
+
+
+
+  gap: 5px;
+
+
+
+}
+
+
+
+
+
+
+
+.selector-group label {
+
+
+
+  color: #A978B5;
+
+
+
+  font-size: 11px;
+
+
+
+  font-weight: bold;
+
+
+
+}
+
+
+
+
+
+
+
+.selector-group select {
+
+
+
+  min-width: 110px;
+
+
+
+
+
+
+
+  padding: 9px 12px;
+
+
+
+
+
+
+
+  border: 1px solid #5B276C;
+
+
+
+  border-radius: 7px;
+
+
+
+
+
+
+
+  background: #120817;
+
+
+
+  color: #FFFFFF;
+
+
+
+
+
+
+
+  outline: none;
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   MAIN
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+main {
+
+
+
+  width: 100%;
+
+
+
+  max-width: 1180px;
+
+
+
+
+
+
+
+  margin: auto;
+
+
+
+  padding: 45px 25px 80px;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   HERO
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.hero-section {
+
+
+
+  padding: 25px 0 35px;
+
+
+
+}
+
+
+
+
+
+
+
+.hero-section h2 {
+
+
+
+  max-width: 700px;
+
+
+
+
+
+
+
+  margin: 8px 0;
+
+
+
+
+
+
+
+  font-size: clamp(32px, 5vw, 52px);
+
+
+
+  line-height: 1.05;
+
+
+
+}
+
+
+
+
+
+
+
+.hero-section p {
+
+
+
+  max-width: 650px;
+
+
+
+
+
+
+
+  margin: 15px 0 0;
+
+
+
+
+
+
+
+  color: #C9A9D3;
+
+
+
+  font-size: 17px;
+
+
+
+  line-height: 1.6;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   LABELS / HEADERS
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.section-label,
+
+
+
+.teams-label,
+
+
+
+.matches-label {
+
+
+
+  display: block;
+
+
+
+
+
+
+
+  color: #A978B5;
+
+
+
+
+
+
+
+  font-size: 11px;
+
+
+
+  font-weight: bold;
+
+
+
+  letter-spacing: 1.5px;
+
+
+
+}
+
+
+
+
+
+
+
+.section-heading,
+
+
+
+.page-header,
+
+
+
+.teams-header,
+
+
+
+.matches-header {
+
+
+
+  display: flex;
+
+
+
+  justify-content: space-between;
+
+
+
+  align-items: flex-end;
+
+
+
+  gap: 20px;
+
+
+
+
+
+
+
+  margin-bottom: 22px;
+
+
+
+}
+
+
+
+
+
+
+
+.section-heading h2,
+
+
+
+.page-header h2,
+
+
+
+.teams-header h2,
+
+
+
+.matches-header h2 {
+
+
+
+  margin: 5px 0;
+
+
+
+  font-size: 30px;
+
+
+
+}
+
+
+
+
+
+
+
+.section-heading p,
+
+
+
+.page-header p,
+
+
+
+.teams-header p,
+
+
+
+.matches-header p {
+
+
+
+  margin: 4px 0 0;
+
+
+
+  color: #C9A9D3;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   BUTTONS
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.back-button,
+
+
+
+.event-open-button,
+
+
+
+.profile-button {
+
+
+
+  padding: 11px 17px;
+
+
+
+
+
+
+
+  border: 1px solid #5B276C;
+
+
+
+  border-radius: 8px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+  color: #FFFFFF;
+
+
+
+
+
+
+
+  font-weight: bold;
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.back-button:hover,
+
+
+
+.event-open-button:hover,
+
+
+
+.profile-button:hover {
+
+
+
+  background: #351541;
+
+
+
+  border-color: #8A4C97;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   SEARCH
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.search-box {
+
+
+
+  padding: 25px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.search-box label {
+
+
+
+  display: block;
+
+
+
+
+
+
+
+  margin-bottom: 12px;
+
+
+
+
+
+
+
+  font-weight: bold;
+
+
+
+}
+
+
+
+
+
+
+
+.search-row {
+
+
+
+  display: flex;
+
+
+
+  gap: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.search-row input {
+
+
+
+  flex: 1;
+
+
+
+  min-width: 0;
+
+
+
+
+
+
+
+  padding: 14px;
+
+
+
+
+
+
+
+  border: 1px solid #5B276C;
+
+
+
+  border-radius: 8px;
+
+
+
+
+
+
+
+  background: #120817;
+
+
+
+  color: #FFFFFF;
+
+
+
+
+
+
+
+  outline: none;
+
+
+
+}
+
+
+
+
+
+
+
+.search-row input:focus {
+
+
+
+  border-color: #BB45A8;
+
+
+
+}
+
+
+
+
+
+
+
+.search-row button {
+
+
+
+  padding: 14px 30px;
+
+
+
+
+
+
+
+  border: none;
+
+
+
+  border-radius: 8px;
+
+
+
+
+
+
+
+  background: #BB45A8;
+
+
+
+  color: #0B0710;
+
+
+
+
+
+
+
+  font-weight: bold;
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.search-row button:hover {
+
+
+
+  opacity: 0.85;
+
+
+
+}
+
+
+
+
+
+
+
+.search-row button:disabled {
+
+
+
+  opacity: 0.5;
+
+
+
+  cursor: not-allowed;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   TEAM PROFILE
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.team-profile {
+
+
+
+  margin-top: 25px;
+
+
+
+  padding: 30px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.team-number {
+
+
+
+  color: #C9A9D3;
+
+
+
+
+
+
+
+  font-size: 13px;
+
+
+
+  font-weight: bold;
+
+
+
+  letter-spacing: 1.5px;
+
+
+
+}
+
+
+
+
+
+
+
+.team-profile h2 {
+
+
+
+  margin: 8px 0;
+
+
+
+
+
+
+
+  font-size: 32px;
+
+
+
+  line-height: 1.15;
+
+
+
+}
+
+
+
+
+
+
+
+.team-profile > p {
+
+
+
+  margin: 0;
+
+
+
+  color: #D7C0DE;
+
+
+
+}
+
+
+
+
+
+
+
+.team-meta {
+
+
+
+  display: flex;
+
+
+
+  flex-wrap: wrap;
+
+
+
+  gap: 15px;
+
+
+
+
+
+
+
+  margin-top: 14px;
+
+
+
+
+
+
+
+  color: #A978B5;
+
+
+
+  font-size: 13px;
+
+
+
+}
+
+
+
+
+
+
+
+.team-meta a {
+
+
+
+  color: #E7D8EB;
+
+
+
+  text-decoration: none;
+
+
+
+}
+
+
+
+
+
+
+
+.team-meta a:hover {
+
+
+
+  color: #FFFFFF;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   TEAM EVENTS
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.team-events-section {
+
+
+
+  margin-top: 40px;
+
+
+
+}
+
+
+
+
+
+
+
+.team-events-list {
+
+
+
+  display: flex;
+
+
+
+  flex-direction: column;
+
+
+
+  gap: 18px;
+
+
+
+}
+
+
+
+
+
+
+
+.team-event-card {
+
+
+
+  padding: 25px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.team-event-top {
+
+
+
+  display: flex;
+
+
+
+  justify-content: space-between;
+
+
+
+  align-items: center;
+
+
+
+  gap: 20px;
+
+
+
+
+
+
+
+  margin-bottom: 22px;
+
+
+
+}
+
+
+
+
+
+
+
+.team-event-top h3 {
+
+
+
+  margin: 6px 0;
+
+
+
+  font-size: 21px;
+
+
+
+}
+
+
+
+
+
+
+
+.team-event-top p {
+
+
+
+  margin: 0;
+
+
+
+  color: #C9A9D3;
+
+
+
+}
+
+
+
+
+
+
+
+.event-key {
+
+
+
+  display: block;
+
+
+
+
+
+
+
+  color: #9365A0;
+
+
+
+
+
+
+
+  font-size: 11px;
+
+
+
+  font-weight: bold;
+
+
+
+  letter-spacing: 1.2px;
+
+
+
+  text-transform: uppercase;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   STATS
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.event-stats-grid,
+
+
+
+.dashboard-summary {
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns: repeat(5, 1fr);
+
+
+
+  gap: 10px;
+
+
+
+}
+
+
+
+
+
+
+
+.event-stat {
+
+
+
+  min-width: 0;
+
+
+
+
+
+
+
+  padding: 16px 10px;
+
+
+
+
+
+
+
+  background: #120817;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 9px;
+
+
+
+
+
+
+
+  text-align: center;
+
+
+
+}
+
+
+
+
+
+
+
+.event-stat span {
+
+
+
+  display: block;
+
+
+
+
+
+
+
+  margin-bottom: 9px;
+
+
+
+
+
+
+
+  color: #A978B5;
+
+
+
+
+
+
+
+  font-size: 11px;
+
+
+
+  font-weight: bold;
+
+
+
+  letter-spacing: 0.6px;
+
+
+
+}
+
+
+
+
+
+
+
+.event-stat strong {
+
+
+
+  font-size: 22px;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   QUICK ACTIONS
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.quick-actions {
+
+
+
+  margin-top: 45px;
+
+
+
+}
+
+
+
+
+
+
+
+.quick-actions h2 {
+
+
+
+  margin-bottom: 15px;
+
+
+
+  font-size: 21px;
+
+
+
+}
+
+
+
+
+
+
+
+.actions {
+
+
+
+  display: grid;
+
+
+
+  gap: 15px;
+
+
+
+}
+
+
+
+
+
+
+
+.home-actions,
+
+
+
+.event-actions-v2 {
+
+
+
+  grid-template-columns: repeat(3, 1fr);
+
+
+
+}
+
+
+
+
+
+
+
+.actions button {
+
+
+
+  padding: 20px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+  color: #FFFFFF;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 10px;
+
+
+
+
+
+
+
+  cursor: pointer;
+
+
+
+  font-weight: bold;
+
+
+
+}
+
+
+
+
+
+
+
+.actions button:hover {
+
+
+
+  background: #2B1037;
+
+
+
+  border-color: #6D347C;
+
+
+
+}
+
+
+
+
+
+
+
+.actions button:disabled {
+
+
+
+  opacity: 0.5;
+
+
+
+  cursor: not-allowed;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   EVENT SEARCH
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.event-search-box,
+
+
+
+.team-table-search,
+
+
+
+.match-search {
+
+
+
+  margin-bottom: 18px;
+
+
+
+}
+
+
+
+
+
+
+
+.event-search-box input,
+
+
+
+.team-table-search input,
+
+
+
+.match-search input {
+
+
+
+  width: 100%;
+
+
+
+
+
+
+
+  padding: 14px 16px;
+
+
+
+
+
+
+
+  border: 1px solid #5B276C;
+
+
+
+  border-radius: 8px;
+
+
+
+
+
+
+
+  background: #120817;
+
+
+
+  color: #FFFFFF;
+
+
+
+
+
+
+
+  outline: none;
+
+
+
+}
+
+
+
+
+
+
+
+.event-search-box input:focus,
+
+
+
+.team-table-search input:focus,
+
+
+
+.match-search input:focus {
+
+
+
+  border-color: #BB45A8;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   EVENT LIST
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.events-browser-list {
+
+
+
+  display: flex;
+
+
+
+  flex-direction: column;
+
+
+
+  gap: 10px;
+
+
+
+}
+
+
+
+
+
+
+
+.event-browser-card {
+
+
+
+  display: flex;
+
+
+
+  justify-content: space-between;
+
+
+
+  align-items: center;
+
+
+
+  gap: 20px;
+
+
+
+
+
+
+
+  padding: 20px 22px;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 10px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.event-browser-card:hover {
+
+
+
+  background: #2B1037;
+
+
+
+  border-color: #6D347C;
+
+
+
+}
+
+
+
+
+
+
+
+.event-browser-card h3 {
+
+
+
+  margin: 5px 0;
+
+
+
+  font-size: 18px;
+
+
+
+}
+
+
+
+
+
+
+
+.event-browser-card p {
+
+
+
+  margin: 0;
+
+
+
+  color: #C9A9D3;
+
+
+
+}
+
+
+
+
+
+
+
+.event-browser-card small {
+
+
+
+  display: block;
+
+
+
+
+
+
+
+  margin-top: 7px;
+
+
+
+
+
+
+
+  color: #9365A0;
+
+
+
+}
+
+
+
+
+
+
+
+.event-arrow {
+
+
+
+  flex-shrink: 0;
+
+
+
+
+
+
+
+  color: #C9A9D3;
+
+
+
+  font-size: 25px;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   EVENT DETAILS
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.event-detail-card,
+
+
+
+.match-detail-card {
+
+
+
+  padding: 30px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.event-detail-card h3,
+
+
+
+.match-detail-card h3 {
+
+
+
+  margin: 7px 0;
+
+
+
+  font-size: 25px;
+
+
+
+}
+
+
+
+
+
+
+
+.event-detail-card p {
+
+
+
+  margin: 5px 0 0;
+
+
+
+  color: #C9A9D3;
+
+
+
+}
+
+
+
+
+
+
+
+.event-date {
+
+
+
+  margin-top: 15px !important;
+
+
+
+  color: #9365A0 !important;
+
+
+
+  font-size: 13px;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   EMPTY
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.empty-state,
+
+
+
+.no-matches {
+
+
+
+  padding: 35px;
+
+
+
+
+
+
+
+  text-align: center;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+
+
+
+
+  color: #C9A9D3;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   TABLES
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.teams-table-container,
+
+
+
+.mini-table-container {
+
+
+
+  width: 100%;
+
+
+
+
+
+
+
+  overflow-x: auto;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+}
+
+
+
+
+
+
+
+.teams-table,
+
+
+
+.mini-table {
+
+
+
+  width: 100%;
+
+
+
+  border-collapse: collapse;
+
+
+
+}
+
+
+
+
+
+
+
+.teams-table th,
+
+
+
+.mini-table th {
+
+
+
+  padding: 15px;
+
+
+
+
+
+
+
+  text-align: left;
+
+
+
+
+
+
+
+  color: #C9A9D3;
+
+
+
+
+
+
+
+  border-bottom: 1px solid #5B276C;
+
+
+
+
+
+
+
+  font-size: 12px;
+
+
+
+  letter-spacing: 0.5px;
+
+
+
+
+
+
+
+  white-space: nowrap;
+
+
+
+}
+
+
+
+
+
+
+
+.teams-table td,
+
+
+
+.mini-table td {
+
+
+
+  padding: 16px 15px;
+
+
+
+  border-bottom: 1px solid #3A174A;
+
+
+
+}
+
+
+
+
+
+
+
+.teams-table tbody tr,
+
+
+
+.mini-table tbody tr {
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.teams-table tbody tr:hover,
+
+
+
+.mini-table tbody tr:hover {
+
+
+
+  background: #2B1037;
+
+
+
+}
+
+
+
+
+
+
+
+.teams-table tbody tr:last-child td,
+
+
+
+.mini-table tbody tr:last-child td {
+
+
+
+  border-bottom: none;
+
+
+
+}
+
+
+
+
+
+
+
+.team-number-cell {
+
+
+
+  font-size: 17px;
+
+
+
+  font-weight: bold;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   MATCHES
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.matches-list {
+
+
+
+  display: flex;
+
+
+
+  flex-direction: column;
+
+
+
+  gap: 15px;
+
+
+
+}
+
+
+
+
+
+
+
+.match-card {
+
+
+
+  padding: 20px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.clickable-match {
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.clickable-match:hover {
+
+
+
+  border-color: #754083;
+
+
+
+  background: #21102A;
+
+
+
+}
+
+
+
+
+
+
+
+.match-title {
+
+
+
+  display: flex;
+
+
+
+  justify-content: space-between;
+
+
+
+  align-items: center;
+
+
+
+  gap: 15px;
+
+
+
+
+
+
+
+  padding-bottom: 15px;
+
+
+
+  margin-bottom: 15px;
+
+
+
+
+
+
+
+  border-bottom: 1px solid #3A174A;
+
+
+
+}
+
+
+
+
+
+
+
+.match-title strong {
+
+
+
+  font-size: 18px;
+
+
+
+}
+
+
+
+
+
+
+
+.match-status {
+
+
+
+  color: #C9A9D3;
+
+
+
+  font-size: 13px;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   ALLIANCES
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.alliances {
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns: 1fr 50px 1fr;
+
+
+
+  align-items: stretch;
+
+
+
+  gap: 15px;
+
+
+
+}
+
+
+
+
+
+
+
+.alliance {
+
+
+
+  position: relative;
+
+
+
+
+
+
+
+  min-height: 105px;
+
+
+
+
+
+
+
+  padding: 18px;
+
+
+
+
+
+
+
+  border: 1px solid #5B276C;
+
+
+
+  border-radius: 10px;
+
+
+
+
+
+
+
+  background: #120817;
+
+
+
+}
+
+
+
+
+
+
+
+.red-alliance {
+
+
+
+  border-left: 4px solid #ef4444;
+
+
+
+}
+
+
+
+
+
+
+
+.blue-alliance {
+
+
+
+  border-left: 4px solid #3b82f6;
+
+
+
+}
+
+
+
+
+
+
+
+.winner-alliance {
+
+
+
+  background: #2A1035;
+
+
+
+}
+
+
+
+
+
+
+
+.alliance-title {
+
+
+
+  margin-bottom: 12px;
+
+
+
+
+
+
+
+  color: #C9A9D3;
+
+
+
+
+
+
+
+  font-size: 12px;
+
+
+
+  font-weight: bold;
+
+
+
+  letter-spacing: 1.5px;
+
+
+
+}
+
+
+
+
+
+
+
+.match-teams {
+
+
+
+  display: flex;
+
+
+
+  flex-wrap: wrap;
+
+
+
+  gap: 8px;
+
+
+
+
+
+
+
+  padding-right: 70px;
+
+
+
+}
+
+
+
+
+
+
+
+.match-team-button {
+
+
+
+  padding: 8px 11px;
+
+
+
+
+
+
+
+  border: 1px solid #5B276C;
+
+
+
+  border-radius: 7px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+  color: #FFFFFF;
+
+
+
+
+
+
+
+  cursor: pointer;
+
+
+
+  font-weight: bold;
+
+
+
+}
+
+
+
+
+
+
+
+.match-team-button:hover {
+
+
+
+  background: #3A174A;
+
+
+
+  border-color: #8A4C97;
+
+
+
+}
+
+
+
+
+
+
+
+.match-score {
+
+
+
+  position: absolute;
+
+
+
+
+
+
+
+  top: 50%;
+
+
+
+  right: 18px;
+
+
+
+
+
+
+
+  transform: translateY(-50%);
+
+
+
+
+
+
+
+  font-size: 30px;
+
+
+
+  font-weight: bold;
+
+
+
+}
+
+
+
+
+
+
+
+.versus {
+
+
+
+  display: flex;
+
+
+
+  align-items: center;
+
+
+
+  justify-content: center;
+
+
+
+
+
+
+
+  color: #9365A0;
+
+
+
+
+
+
+
+  font-size: 12px;
+
+
+
+  font-weight: bold;
+
+
+
+}
+
+
+
+
+
+
+
+.alliances-large .alliance {
+
+
+
+  min-height: 145px;
+
+
+
+  padding: 25px;
+
+
+
+}
+
+
+
+
+
+
+
+.alliances-large .match-team-button {
+
+
+
+  padding: 12px 15px;
+
+
+
+  font-size: 17px;
+
+
+
+}
+
+
+
+
+
+
+
+.alliances-large .match-score {
+
+
+
+  font-size: 42px;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   DASHBOARD
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.dashboard-summary {
+
+
+
+  margin-bottom: 25px;
+
+
+
+}
+
+
+
+
+
+
+
+.dashboard-columns {
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns: 1fr 1fr;
+
+
+
+  gap: 20px;
+
+
+
+}
+
+
+
+
+
+
+
+.ranking-panel {
+
+
+
+  padding: 22px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.panel-heading {
+
+
+
+  margin-bottom: 17px;
+
+
+
+}
+
+
+
+
+
+
+
+.panel-heading h3 {
+
+
+
+  margin: 5px 0 0;
+
+
+
+  font-size: 20px;
+
+
+
+}
+
+
+
+
+
+
+
+.ccwm-panel {
+
+
+
+  margin-top: 20px;
+
+
+
+}
+
+
+
+
+
+
+
+.dashboard-team-cards {
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns: repeat(5, 1fr);
+
+
+
+  gap: 10px;
+
+
+
+}
+
+
+
+
+
+
+
+.dashboard-team-card {
+
+
+
+  display: flex;
+
+
+
+  flex-direction: column;
+
+
+
+  gap: 6px;
+
+
+
+
+
+
+
+  padding: 15px;
+
+
+
+
+
+
+
+  text-align: left;
+
+
+
+
+
+
+
+  border: 1px solid #5B276C;
+
+
+
+  border-radius: 9px;
+
+
+
+
+
+
+
+  background: #120817;
+
+
+
+  color: #FFFFFF;
+
+
+
+
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.dashboard-team-card:hover {
+
+
+
+  background: #2B1037;
+
+
+
+}
+
+
+
+
+
+
+
+.dashboard-team-card span {
+
+
+
+  color: #9365A0;
+
+
+
+  font-size: 11px;
+
+
+
+}
+
+
+
+
+
+
+
+.dashboard-team-card strong {
+
+
+
+  font-size: 20px;
+
+
+
+}
+
+
+
+
+
+
+
+.dashboard-team-card small {
+
+
+
+  color: #D7C0DE;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   COMPARE
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.compare-selector-card {
+
+
+
+  padding: 22px;
+
+
+
+  margin-bottom: 18px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.compare-selector-card label,
+
+
+
+.compare-picker label,
+
+
+
+.form-field label {
+
+
+
+  display: block;
+
+
+
+
+
+
+
+  margin-bottom: 8px;
+
+
+
+
+
+
+
+  color: #D7C0DE;
+
+
+
+
+
+
+
+  font-size: 13px;
+
+
+
+  font-weight: bold;
+
+
+
+}
+
+
+
+
+
+
+
+.compare-selector-card select,
+
+
+
+.compare-picker select,
+
+
+
+.form-field select,
+
+
+
+.form-field input,
+
+
+
+.form-field textarea {
+
+
+
+  width: 100%;
+
+
+
+
+
+
+
+  padding: 12px 13px;
+
+
+
+
+
+
+
+  border: 1px solid #5B276C;
+
+
+
+  border-radius: 8px;
+
+
+
+
+
+
+
+  background: #120817;
+
+
+
+  color: #FFFFFF;
+
+
+
+
+
+
+
+  outline: none;
+
+
+
+}
+
+
+
+
+
+
+
+.compare-selector-card select:focus,
+
+
+
+.compare-picker select:focus,
+
+
+
+.form-field select:focus,
+
+
+
+.form-field input:focus,
+
+
+
+.form-field textarea:focus {
+
+
+
+  border-color: #BB45A8;
+
+
+
+}
+
+
+
+
+
+
+
+.loading-text {
+
+
+
+  margin: 12px 0 0;
+
+
+
+  color: #C9A9D3;
+
+
+
+}
+
+
+
+
+
+
+
+.compare-pickers {
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns: repeat(2, 1fr);
+
+
+
+  gap: 12px;
+
+
+
+
+
+
+
+  margin-bottom: 20px;
+
+
+
+}
+
+
+
+
+
+
+
+.compare-picker {
+
+
+
+  padding: 17px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 10px;
+
+
+
+}
+
+
+
+
+
+
+
+.comparison-grid {
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns:
+
+
+
+    repeat(auto-fit, minmax(210px, 1fr));
+
+
+
+  gap: 15px;
+
+
+
+}
+
+
+
+
+
+
+
+.comparison-card {
+
+
+
+  padding: 22px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.comparison-card h3 {
+
+
+
+  margin: 5px 0 2px;
+
+
+
+  font-size: 31px;
+
+
+
+}
+
+
+
+
+
+
+
+.comparison-card > p {
+
+
+
+  min-height: 38px;
+
+
+
+
+
+
+
+  margin: 0 0 18px;
+
+
+
+
+
+
+
+  color: #C9A9D3;
+
+
+
+}
+
+
+
+
+
+
+
+.comparison-stats {
+
+
+
+  display: flex;
+
+
+
+  flex-direction: column;
+
+
+
+  gap: 7px;
+
+
+
+}
+
+
+
+
+
+
+
+.compare-stat {
+
+
+
+  display: flex;
+
+
+
+  justify-content: space-between;
+
+
+
+  gap: 15px;
+
+
+
+
+
+
+
+  padding: 11px 12px;
+
+
+
+
+
+
+
+  background: #120817;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 7px;
+
+
+
+}
+
+
+
+
+
+
+
+.compare-stat span {
+
+
+
+  color: #A978B5;
+
+
+
+  font-size: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.profile-button {
+
+
+
+  width: 100%;
+
+
+
+  margin-top: 15px;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   SCOUTING
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+.scouting-warning {
+
+
+
+  margin-bottom: 18px;
+
+
+
+  padding: 14px 16px;
+
+
+
+
+
+
+
+  border: 1px solid #6D347C;
+
+
+
+  border-radius: 9px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  color: #D7C0DE;
+
+
+
+  font-size: 13px;
+
+
+
+  line-height: 1.5;
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-form {
+
+
+
+  padding: 25px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.form-grid {
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns: repeat(3, 1fr);
+
+
+
+  gap: 15px;
+
+
+
+
+
+
+
+  margin-bottom: 18px;
+
+
+
+}
+
+
+
+
+
+
+
+.form-grid.two-columns {
+
+
+
+  grid-template-columns: repeat(2, 1fr);
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-score-grid {
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns: repeat(3, 1fr);
+
+
+
+  gap: 15px;
+
+
+
+
+
+
+
+  margin-bottom: 18px;
+
+
+
+}
+
+
+
+
+
+
+
+.form-field textarea {
+
+
+
+  resize: vertical;
+
+
+
+  min-height: 100px;
+
+
+
+}
+
+
+
+
+
+
+
+.form-field input[type="range"] {
+
+
+
+  padding: 0;
+
+
+
+  border: none;
+
+
+
+}
+
+
+
+
+
+
+
+.checkbox-field {
+
+
+
+  display: flex;
+
+
+
+  align-items: center;
+
+
+
+  gap: 10px;
+
+
+
+
+
+
+
+  margin: 18px 0;
+
+
+
+
+
+
+
+  color: #E7D8EB;
+
+
+
+
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.checkbox-field input {
+
+
+
+  width: 18px;
+
+
+
+  height: 18px;
+
+
+
+}
+
+
+
+
+
+
+
+.save-scouting-button {
+
+
+
+  width: 100%;
+
+
+
+
+
+
+
+  margin-top: 20px;
+
+
+
+  padding: 15px;
+
+
+
+
+
+
+
+  border: none;
+
+
+
+  border-radius: 8px;
+
+
+
+
+
+
+
+  background: #BB45A8;
+
+
+
+  color: #0B0710;
+
+
+
+
+
+
+
+  font-weight: bold;
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.save-scouting-button:hover {
+
+
+
+  opacity: 0.88;
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-history {
+
+
+
+  margin-top: 40px;
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-records {
+
+
+
+  display: flex;
+
+
+
+  flex-direction: column;
+
+
+
+  gap: 15px;
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-record {
+
+
+
+  padding: 22px;
+
+
+
+
+
+
+
+  background: #1B0C23;
+
+
+
+
+
+
+
+  border: 1px solid #3A174A;
+
+
+
+  border-radius: 12px;
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-record-top {
+
+
+
+  display: flex;
+
+
+
+  justify-content: space-between;
+
+
+
+  align-items: flex-start;
+
+
+
+  gap: 20px;
+
+
+
+
+
+
+
+  margin-bottom: 18px;
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-record-top h3 {
+
+
+
+  margin: 6px 0;
+
+
+
+  font-size: 22px;
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-record-top p {
+
+
+
+  margin: 0;
+
+
+
+  color: #C9A9D3;
+
+
+
+}
+
+
+
+
+
+
+
+.delete-button {
+
+
+
+  padding: 8px 12px;
+
+
+
+
+
+
+
+  border: 1px solid #4b3034;
+
+
+
+  border-radius: 7px;
+
+
+
+
+
+
+
+  background: #21171a;
+
+
+
+  color: #dca0a7;
+
+
+
+
+
+
+
+  cursor: pointer;
+
+
+
+}
+
+
+
+
+
+
+
+.delete-button:hover {
+
+
+
+  background: #301d21;
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-record-stats {
+
+
+
+  display: grid;
+
+
+
+  grid-template-columns: repeat(5, 1fr);
+
+
+
+  gap: 8px;
+
+
+
+}
+
+
+
+
+
+
+
+.breakdown-badge {
+
+
+
+  display: inline-block;
+
+
+
+
+
+
+
+  margin-top: 15px;
+
+
+
+  padding: 6px 10px;
+
+
+
+
+
+
+
+  border: 1px solid #55343a;
+
+
+
+  border-radius: 20px;
+
+
+
+
+
+
+
+  background: #28191d;
+
+
+
+  color: #dca0a7;
+
+
+
+
+
+
+
+  font-size: 12px;
+
+
+
+  font-weight: bold;
+
+
+
+}
+
+
+
+
+
+
+
+.scouting-notes {
+
+
+
+  margin: 15px 0 0;
+
+
+
+  padding-top: 15px;
+
+
+
+
+
+
+
+  border-top: 1px solid #3A174A;
+
+
+
+
+
+
+
+  color: #DCC8E2;
+
+
+
+  line-height: 1.55;
+
+
+
+}
+
+
+
+
+
+
+
+/* =========================================
+
+
+
+   RESPONSIVE
+
+
+
+\========================================= */
+
+
+
+
+
+
+
+@media (max-width: 950px) {
+
+
+
+  .header {
+
+
+
+    grid-template-columns: 1fr auto;
+
+
+
+  }
+
+
+
+
+
+
+
+  .main-nav {
+
+
+
+    grid-column: 1 / -1;
+
+
+
+    grid-row: 2;
+
+
+
+
+
+
+
+    justify-content: flex-start;
+
+
+
+
+
+
+
+    overflow-x: auto;
+
+
+
+  }
+
+
+
+
+
+
+
+  .dashboard-columns {
+
+
+
+    grid-template-columns: 1fr;
+
+
+
+  }
+
+
+
+
+
+
+
+  .dashboard-team-cards {
+
+
+
+    grid-template-columns: repeat(3, 1fr);
+
+
+
+  }
+
+
+
+
+
+
+
+  .event-stats-grid,
+
+
+
+  .dashboard-summary,
+
+
+
+  .scouting-record-stats {
+
+
+
+    grid-template-columns: repeat(3, 1fr);
+
+
+
+  }
+
+
+
+}
+
+
+
+
+
+
+
+@media (max-width: 700px) {
+
+
+
+  .header {
+
+
+
+    position: static;
+
+
+
+
+
+
+
+    grid-template-columns: 1fr;
+
+
+
+
+
+
+
+    padding: 18px;
+
+
+
+  }
+
+
+
+
+
+
+
+  .event-controls {
+
+
+
+    grid-row: 2;
+
+
+
+  }
+
+
+
+
+
+
+
+  .main-nav {
+
+
+
+    grid-row: 3;
+
+
+
+
+
+
+
+    padding-bottom: 3px;
+
+
+
+  }
+
+
+
+
+
+
+
+  .main-nav button {
+
+
+
+    white-space: nowrap;
+
+
+
+  }
+
+
+
+
+
+
+
+  .selector-group,
+
+
+
+  .selector-group select {
+
+
+
+    width: 100%;
+
+
+
+  }
+
+
+
+
+
+
+
+  main {
+
+
+
+    padding: 30px 18px 55px;
+
+
+
+  }
+
+
+
+
+
+
+
+  .hero-section {
+
+
+
+    padding-top: 10px;
+
+
+
+  }
+
+
+
+
+
+
+
+  .search-row,
+
+
+
+  .team-event-top,
+
+
+
+  .section-heading,
+
+
+
+  .page-header,
+
+
+
+  .teams-header,
+
+
+
+  .matches-header,
+
+
+
+  .scouting-record-top {
+
+
+
+    flex-direction: column;
+
+
+
+    align-items: stretch;
+
+
+
+  }
+
+
+
+
+
+
+
+  .search-row button,
+
+
+
+  .back-button,
+
+
+
+  .event-open-button {
+
+
+
+    width: 100%;
+
+
+
+  }
+
+
+
+
+
+
+
+  .home-actions,
+
+
+
+  .event-actions-v2,
+
+
+
+  .compare-pickers,
+
+
+
+  .form-grid,
+
+
+
+  .form-grid.two-columns,
+
+
+
+  .scouting-score-grid {
+
+
+
+    grid-template-columns: 1fr;
+
+
+
+  }
+
+
+
+
+
+
+
+  .event-stats-grid,
+
+
+
+  .dashboard-summary,
+
+
+
+  .scouting-record-stats {
+
+
+
+    grid-template-columns: repeat(2, 1fr);
+
+
+
+  }
+
+
+
+
+
+
+
+  .dashboard-team-cards {
+
+
+
+    grid-template-columns: repeat(2, 1fr);
+
+
+
+  }
+
+
+
+
+
+
+
+  .teams-table {
+
+
+
+    min-width: 750px;
+
+
+
+  }
+
+
+
+
+
+
+
+  .alliances {
+
+
+
+    grid-template-columns: 1fr;
+
+
+
+  }
+
+
+
+
+
+
+
+  .versus {
+
+
+
+    padding: 2px 0;
+
+
+
+  }
+
+
+
+
+
+
+
+  .match-teams {
+
+
+
+    padding-right: 60px;
+
+
+
+  }
+
+
+
+}
+
+
+
+
+
+
+
+@media (max-width: 450px) {
+
+
+
+  .event-stats-grid,
+
+
+
+  .dashboard-summary,
+
+
+
+  .scouting-record-stats,
+
+
+
+  .dashboard-team-cards {
+
+
+
+    grid-template-columns: 1fr;
+
+
+
+  }
+
+
+
+
+
+
+
+  .team-profile,
+
+
+
+  .team-event-card,
+
+
+
+  .event-detail-card,
+
+
+
+  .match-detail-card,
+
+
+
+  .scouting-form {
+
+
+
+    padding: 20px;
+
+
+
+  }
+
+
+
+
+
+
+
+  .comparison-card h3 {
+
+
+
+    font-size: 27px;
+
+
+
+  }
+
+
+
+}
+
+
+
+/* =========================================
+
+   QUANTUM SCOUTING V3
+
+   Nuevos componentes
+
+\========================================= */
+
+
+
+.team-profile-title-row {
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+}
+
+
+
+.favorite-button,
+
+.favorite-star {
+
+  border: 1px solid #5B276C;
+
+  border-radius: 8px;
+
+  background: #120817;
+
+  color: #FFFFFF;
+
+  cursor: pointer;
+
+}
+
+
+
+.favorite-button {
+
+  flex-shrink: 0;
+
+  padding: 10px 14px;
+
+  font-weight: bold;
+
+}
+
+
+
+.favorite-button:hover,
+
+.favorite-star:hover {
+
+  background: #351541;
+
+  border-color: #8A4C97;
+
+}
+
+
+
+.favorite-star {
+
+  min-width: 38px;
+
+  min-height: 36px;
+
+  padding: 6px 9px;
+
+  font-size: 19px;
+
+}
+
+
+
+.team-performance-section {
+
+  margin-top: 40px;
+
+}
+
+
+
+.team-performance-section .dashboard-summary {
+
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+
+}
+
+
+
+.pit-summary-card {
+
+  padding: 22px;
+
+  background: #1B0C23;
+
+  border: 1px solid #3A174A;
+
+  border-radius: 12px;
+
+}
+
+
+
+.pit-summary-card p {
+
+  margin: 8px 0;
+
+  color: #DCC8E2;
+
+  line-height: 1.55;
+
+}
+
+
+
+.pit-summary-card strong {
+
+  color: #FFFFFF;
+
+}
+
+
+
+/* =========================================
+
+   SCOUTING TABS
+
+\========================================= */
+
+
+
+.scouting-tabs {
+
+  display: flex;
+
+  gap: 8px;
+
+  margin-bottom: 18px;
+
+  padding: 5px;
+
+  border: 1px solid #3A174A;
+
+  border-radius: 10px;
+
+  background: #1B0C23;
+
+}
+
+
+
+.scouting-tabs button {
+
+  flex: 1;
+
+  padding: 12px 16px;
+
+  border: 1px solid transparent;
+
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #C9A9D3;
+
+  cursor: pointer;
+
+  font-weight: bold;
+
+}
+
+
+
+.scouting-tabs button:hover {
+
+  background: #2B1037;
+
+  color: #FFFFFF;
+
+}
+
+
+
+.scouting-tabs button.active {
+
+  background: #351541;
+
+  border-color: #6D347C;
+
+  color: #FFFFFF;
+
+}
+
+
+
+/* V3 puede tener Auto, Teleop, Endgame, Ciclos y Faltas */
+
+.scouting-score-grid {
+
+  grid-template-columns: repeat(5, 1fr);
+
+}
+
+
+
+/* =========================================
+
+   3v3 ALLIANCE COMPARISON
+
+\========================================= */
+
+
+
+.alliance-comparison-grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 20px;
+
+}
+
+
+
+.alliance-builder {
+
+  padding: 24px;
+
+  border: 1px solid #3A174A;
+
+  border-radius: 12px;
+
+  background: #1B0C23;
+
+}
+
+
+
+.alliance-builder.red-builder {
+
+  border-top: 4px solid #ef4444;
+
+}
+
+
+
+.alliance-builder.blue-builder {
+
+  border-top: 4px solid #3b82f6;
+
+}
+
+
+
+.alliance-builder h2 {
+
+  margin: 6px 0 18px;
+
+}
+
+
+
+.alliance-pickers {
+
+  display: grid;
+
+  gap: 10px;
+
+  margin-bottom: 20px;
+
+}
+
+
+
+.alliance-builder .compare-picker {
+
+  padding: 14px;
+
+  background: #120817;
+
+}
+
+
+
+.alliance-builder .comparison-stats {
+
+  margin-top: 18px;
+
+}
+
+
+
+/* =========================================
+
+   PICK LIST
+
+\========================================= */
+
+
+
+.pick-controls {
+
+  display: grid;
+
+  grid-template-columns: minmax(240px, 2fr) minmax(190px, 1fr) minmax(200px, 1fr);
+
+  gap: 12px;
+
+  margin-bottom: 18px;
+
+}
+
+
+
+.pick-controls select,
+
+.pick-controls input {
+
+  width: 100%;
+
+  padding: 13px 14px;
+
+  border: 1px solid #5B276C;
+
+  border-radius: 8px;
+
+  background: #120817;
+
+  color: #FFFFFF;
+
+  outline: none;
+
+}
+
+
+
+.pick-controls select:focus,
+
+.pick-controls input:focus {
+
+  border-color: #BB45A8;
+
+}
+
+
+
+/* =========================================
+
+   FAVORITES
+
+\========================================= */
+
+
+
+.favorites-grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+
+  gap: 15px;
+
+}
+
+
+
+.favorite-card {
+
+  position: relative;
+
+  display: flex;
+
+  flex-direction: column;
+
+  min-height: 230px;
+
+  padding: 22px;
+
+  border: 1px solid #3A174A;
+
+  border-radius: 12px;
+
+  background: #1B0C23;
+
+}
+
+
+
+.favorite-card > .favorite-star {
+
+  position: absolute;
+
+  top: 16px;
+
+  right: 16px;
+
+}
+
+
+
+.favorite-card h2 {
+
+  margin: 6px 0;
+
+  font-size: 34px;
+
+}
+
+
+
+.favorite-card p {
+
+  flex: 1;
+
+  margin: 0 0 10px;
+
+  color: #D7C0DE;
+
+  line-height: 1.45;
+
+}
+
+
+
+.favorite-card small {
+
+  margin-bottom: 12px;
+
+  color: #A978B5;
+
+}
+
+
+
+/* =========================================
+
+   LIVE EVENT
+
+\========================================= */
+
+
+
+.live-list {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+
+}
+
+
+
+.live-match-row {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 16px;
+
+  width: 100%;
+
+  padding: 13px 14px;
+
+  text-align: left;
+
+  border: 1px solid #3A174A;
+
+  border-radius: 8px;
+
+  background: #120817;
+
+  color: #FFFFFF;
+
+  cursor: pointer;
+
+}
+
+
+
+.live-match-row:hover {
+
+  background: #2B1037;
+
+  border-color: #6D347C;
+
+}
+
+
+
+.live-match-row span {
+
+  color: #C9A9D3;
+
+  font-size: 12px;
+
+  text-align: right;
+
+}
+
+
+
+.pending-grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+
+  gap: 10px;
+
+}
+
+
+
+.pending-card {
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-start;
+
+  gap: 6px;
+
+  padding: 15px;
+
+  text-align: left;
+
+  border: 1px solid #5B276C;
+
+  border-radius: 9px;
+
+  background: #120817;
+
+  color: #FFFFFF;
+
+  cursor: pointer;
+
+}
+
+
+
+.pending-card:hover {
+
+  background: #2B1037;
+
+  border-color: #8A4C97;
+
+}
+
+
+
+.pending-card span {
+
+  color: #C9A9D3;
+
+  font-size: 12px;
+
+}
+
+
+
+/* =========================================
+
+   V3 TABLE / CONTROL POLISH
+
+\========================================= */
+
+
+
+.teams-table td:first-child,
+
+.teams-table th:first-child {
+
+  width: 54px;
+
+  text-align: center;
+
+}
+
+
+
+.teams-table .favorite-star {
+
+  border: none;
+
+  background: transparent;
+
+}
+
+
+
+.teams-table .favorite-star:hover {
+
+  background: #3A174A;
+
+}
+
+
+
+.compare-selector-card select {
+
+  cursor: pointer;
+
+}
+
+
+
+input::placeholder,
+
+textarea::placeholder {
+
+  color: #9365A0;
+
+}
+
+
+
+select:disabled,
+
+input:disabled,
+
+textarea:disabled,
+
+button:disabled {
+
+  cursor: not-allowed;
+
+}
+
+
+
+.scouting-form > .form-field {
+
+  margin-top: 18px;
+
+}
+
+
+
+/* =========================================
+
+   V3 RESPONSIVE
+
+\========================================= */
+
+
+
+@media (max-width: 1050px) {
+
+  .main-nav {
+
+    justify-content: flex-start;
+
+    overflow-x: auto;
+
+    scrollbar-width: thin;
+
+  }
+
+
+
+  .main-nav button {
+
+    flex-shrink: 0;
+
+    white-space: nowrap;
+
+  }
+
+
+
+  .scouting-score-grid {
+
+    grid-template-columns: repeat(3, 1fr);
+
+  }
+
+
+
+  .pick-controls {
+
+    grid-template-columns: 1fr 1fr;
+
+  }
+
+
+
+  .pick-controls input {
+
+    grid-column: 1 / -1;
+
+  }
+
+}
+
+
+
+@media (max-width: 850px) {
+
+  .alliance-comparison-grid {
+
+    grid-template-columns: 1fr;
+
+  }
+
+
+
+  .team-profile-title-row {
+
+    flex-direction: column;
+
+  }
+
+
+
+  .favorite-button {
+
+    width: 100%;
+
+  }
+
+
+
+  .live-match-row {
+
+    align-items: flex-start;
+
+    flex-direction: column;
+
+  }
+
+
+
+  .live-match-row span {
+
+    text-align: left;
+
+  }
+
+}
+
+
+
+@media (max-width: 700px) {
+
+  .scouting-tabs {
+
+    flex-direction: column;
+
+  }
+
+
+
+  .scouting-score-grid,
+
+  .pick-controls {
+
+    grid-template-columns: 1fr;
+
+  }
+
+
+
+  .pick-controls input {
+
+    grid-column: auto;
+
+  }
+
+
+
+  .alliance-builder {
+
+    padding: 18px;
+
+  }
+
+
+
+  .favorites-grid,
+
+  .pending-grid {
+
+    grid-template-columns: 1fr;
+
+  }
+
+
+
+  .team-performance-section .dashboard-summary {
+
+    grid-template-columns: repeat(2, 1fr);
+
+  }
+
+}
+
+
+
+@media (max-width: 450px) {
+
+  .team-performance-section .dashboard-summary {
+
+    grid-template-columns: 1fr;
+
+  }
+
+
+
+  .favorite-card,
+
+  .pit-summary-card,
+
+  .alliance-builder {
+
+    padding: 18px;
+
+  }
+
+}
+
+
+/* =========================================
+   QUANTUM FORCE BRAND COLORS
+========================================= */
+
+:root {
+  --quantum-purple: #490D64;
+  --quantum-pink: #BB45A8;
+  --quantum-white: #FFFFFF;
+  --quantum-black: #000000;
+}
+
+.main-nav button.active,
+.scouting-tabs button.active {
+  background: #490D64;
+  border-color: #BB45A8;
+  box-shadow: inset 0 -2px 0 #BB45A8;
+}
+
+.search-row button,
+.save-scouting-button {
+  background: #BB45A8;
+  color: #FFFFFF;
+}
+
+.search-row button:hover,
+.save-scouting-button:hover {
+  background: #490D64;
+  opacity: 1;
+}
+
+.favorite-button:hover,
+.favorite-star:hover {
+  border-color: #BB45A8;
+}
+
+/* =========================================================
+   QUANTUM FORCE — FINAL THEME
+   Principal: #490D64
+   Accent:    #BB45A8
+   ========================================================= */
+
+:root {
+  --quantum-purple: #490D64;
+  --quantum-pink: #BB45A8;
+  --quantum-white: #FFFFFF;
+  --quantum-black: #000000;
+
+  --q-bg: #160D1D;
+  --q-bg-soft: #1D1126;
+  --q-surface: #26142F;
+  --q-surface-2: #30183B;
+  --q-surface-3: #3A1B47;
+
+  --q-border: #593068;
+  --q-border-strong: #754184;
+
+  --q-text: #FFFFFF;
+  --q-text-soft: #E6D8EA;
+  --q-text-muted: #C9A9D3;
+}
+
+
+/* =========================================================
+   GENERAL
+   ========================================================= */
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: var(--q-bg);
+}
+
+body {
+  background:
+    radial-gradient(
+      circle at top,
+      rgba(73, 13, 100, 0.32) 0,
+      rgba(73, 13, 100, 0.12) 300px,
+      transparent 650px
+    ),
+    var(--q-bg);
+
+  color: var(--q-text);
+}
+
+.app {
+  min-height: 100vh;
+}
+
+
+/* =========================================================
+   MAIN CONTAINER
+   Corrige el espacio lateral y evita que las tarjetas
+   parezcan salirse del borde.
+   ========================================================= */
+
+main {
+  width: calc(100% - 48px);
+  max-width: 1180px;
+
+  margin-left: auto;
+  margin-right: auto;
+
+  padding-left: 0;
+  padding-right: 0;
+}
+
+main > * {
+  max-width: 100%;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.header {
+  background: rgba(29, 17, 38, 0.96);
+
+  border-bottom: 1px solid var(--quantum-purple);
+
+  box-shadow:
+    0 1px 0 rgba(187, 69, 168, 0.12),
+    0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.logo-area h1 {
+  color: var(--quantum-white);
+}
+
+.logo-area p {
+  color: var(--q-text-muted);
+}
+
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+.main-nav button {
+  color: var(--q-text-muted);
+}
+
+.main-nav button:hover {
+  background: var(--q-surface-2);
+  color: var(--quantum-white);
+}
+
+.main-nav button.active,
+.scouting-tabs button.active {
+  background: var(--quantum-purple);
+
+  border-color: var(--quantum-pink);
+
+  color: var(--quantum-white);
+
+  box-shadow:
+    inset 0 -2px 0 var(--quantum-pink),
+    0 0 14px rgba(73, 13, 100, 0.25);
+}
+
+
+/* =========================================================
+   SEASON SELECTOR
+   ========================================================= */
+
+.selector-group label {
+  color: var(--quantum-pink);
+}
+
+.selector-group select {
+  background: var(--q-surface);
+
+  border-color: var(--q-border);
+
+  color: var(--quantum-white);
+}
+
+.selector-group select:hover,
+.selector-group select:focus {
+  border-color: var(--quantum-pink);
+}
+
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
+.hero-section h2 {
+  color: var(--quantum-white);
+}
+
+.hero-section p {
+  color: var(--q-text-soft);
+}
+
+.section-label,
+.teams-label,
+.matches-label {
+  color: var(--quantum-pink);
+}
+
+
+/* =========================================================
+   CARDS / SURFACES
+   ========================================================= */
+
+.search-box,
+.team-profile,
+.team-event-card,
+.event-browser-card,
+.event-detail-card,
+.match-detail-card,
+.empty-state,
+.no-matches,
+.ranking-panel,
+.compare-selector-card,
+.compare-picker,
+.comparison-card,
+.scouting-warning,
+.scouting-form,
+.scouting-record,
+.pit-summary-card,
+.alliance-builder,
+.favorite-card,
+.scouting-tabs {
+  background: var(--q-surface);
+
+  border-color: var(--q-border);
+
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =========================================================
+   INNER CARDS / STATS
+   ========================================================= */
+
+.event-stat,
+.compare-stat,
+.dashboard-team-card,
+.alliance,
+.match-team-button,
+.alliance-builder .compare-picker,
+.live-match-row,
+.pending-card {
+  background: var(--q-bg-soft);
+
+  border-color: var(--q-border);
+}
+
+
+/* =========================================================
+   SEARCH / INPUTS
+   ========================================================= */
+
+.search-row input,
+.event-search-box input,
+.team-table-search input,
+.match-search input,
+.compare-selector-card select,
+.compare-picker select,
+.form-field select,
+.form-field input,
+.form-field textarea,
+.pick-controls select,
+.pick-controls input {
+  background: var(--q-bg-soft);
+
+  border-color: var(--q-border);
+
+  color: var(--quantum-white);
+}
+
+.search-row input:hover,
+.event-search-box input:hover,
+.team-table-search input:hover,
+.match-search input:hover,
+.compare-selector-card select:hover,
+.compare-picker select:hover,
+.form-field select:hover,
+.form-field input:hover,
+.form-field textarea:hover,
+.pick-controls select:hover,
+.pick-controls input:hover {
+  border-color: var(--q-border-strong);
+}
+
+.search-row input:focus,
+.event-search-box input:focus,
+.team-table-search input:focus,
+.match-search input:focus,
+.compare-selector-card select:focus,
+.compare-picker select:focus,
+.form-field select:focus,
+.form-field input:focus,
+.form-field textarea:focus,
+.pick-controls select:focus,
+.pick-controls input:focus {
+  border-color: var(--quantum-pink);
+
+  box-shadow:
+    0 0 0 3px rgba(187, 69, 168, 0.12);
+}
+
+
+/* =========================================================
+   PRIMARY BUTTONS
+   #490D64 AHORA ES EL COLOR PRINCIPAL
+   ========================================================= */
+
+.search-row button,
+.save-scouting-button {
+  background: var(--quantum-purple);
+
+  border: 1px solid var(--quantum-purple);
+
+  color: var(--quantum-white);
+
+  box-shadow:
+    0 4px 14px rgba(73, 13, 100, 0.25);
+}
+
+.search-row button:hover,
+.save-scouting-button:hover {
+  background: #5C1678;
+
+  border-color: var(--quantum-pink);
+
+  opacity: 1;
+
+  box-shadow:
+    0 5px 18px rgba(73, 13, 100, 0.35);
+}
+
+
+/* =========================================================
+   SECONDARY BUTTONS
+   ========================================================= */
+
+.back-button,
+.event-open-button,
+.profile-button,
+.favorite-button,
+.favorite-star {
+  background: var(--q-surface-2);
+
+  border-color: var(--q-border);
+
+  color: var(--quantum-white);
+}
+
+.back-button:hover,
+.event-open-button:hover,
+.profile-button:hover,
+.favorite-button:hover,
+.favorite-star:hover {
+  background: var(--quantum-purple);
+
+  border-color: var(--quantum-pink);
+}
+
+
+/* =========================================================
+   QUICK ACTIONS
+   ========================================================= */
+
+.actions button {
+  background: var(--q-surface);
+
+  border-color: var(--q-border);
+
+  color: var(--quantum-white);
+}
+
+.actions button:hover {
+  background: var(--quantum-purple);
+
+  border-color: var(--quantum-pink);
+
+  box-shadow:
+    0 5px 18px rgba(73, 13, 100, 0.22);
+}
+
+
+/* =========================================================
+   EVENT CARDS
+   ========================================================= */
+
+.event-browser-card:hover {
+  background: var(--q-surface-2);
+
+  border-color: var(--quantum-purple);
+
+  transform: translateY(-1px);
+}
+
+.event-key {
+  color: var(--quantum-pink);
+}
+
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+.teams-table-container,
+.mini-table-container {
+  background: var(--q-surface);
+
+  border-color: var(--q-border);
+}
+
+.teams-table th,
+.mini-table th {
+  background: rgba(73, 13, 100, 0.18);
+
+  color: var(--q-text-soft);
+
+  border-bottom-color: var(--quantum-purple);
+}
+
+.teams-table td,
+.mini-table td {
+  border-bottom-color: var(--q-border);
+}
+
+.teams-table tbody tr:hover,
+.mini-table tbody tr:hover {
+  background: rgba(73, 13, 100, 0.28);
+}
+
+
+/* =========================================================
+   MATCHES
+   ========================================================= */
+
+.match-card {
+  background: var(--q-surface);
+
+  border-color: var(--q-border);
+}
+
+.clickable-match:hover {
+  background: var(--q-surface-2);
+
+  border-color: var(--quantum-purple);
+}
+
+.match-title {
+  border-bottom-color: var(--q-border);
+}
+
+
+/* =========================================================
+   TEAM / EVENT STATS
+   ========================================================= */
+
+.event-stat span,
+.compare-stat span,
+.dashboard-team-card span {
+  color: var(--quantum-pink);
+}
+
+.event-stat strong,
+.compare-stat strong,
+.dashboard-team-card strong {
+  color: var(--quantum-white);
+}
+
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
+.dashboard-team-card:hover {
+  background: var(--q-surface-2);
+
+  border-color: var(--quantum-purple);
+}
+
+
+/* =========================================================
+   COMPARISON
+   ========================================================= */
+
+.comparison-card {
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.comparison-card:hover {
+  border-color: var(--quantum-purple);
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   SCOUTING
+   ========================================================= */
+
+.scouting-tabs button {
+  color: var(--q-text-muted);
+}
+
+.scouting-tabs button:hover {
+  background: var(--q-surface-2);
+
+  color: var(--quantum-white);
+}
+
+.scouting-notes {
+  border-top-color: var(--q-border);
+
+  color: var(--q-text-soft);
+}
+
+
+/* =========================================================
+   FAVORITES
+   ========================================================= */
+
+.favorite-card {
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.favorite-card:hover {
+  border-color: var(--quantum-purple);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+
+/* =========================================================
+   LIVE EVENT
+   ========================================================= */
+
+.live-match-row:hover,
+.pending-card:hover {
+  background: var(--q-surface-2);
+
+  border-color: var(--quantum-pink);
+}
+
+
+/* =========================================================
+   ALLIANCE BUILDER
+   Mantener rojo y azul porque tienen significado FRC.
+   ========================================================= */
+
+.alliance-builder {
+  background: var(--q-surface);
+}
+
+.alliance-builder .compare-picker {
+  background: var(--q-bg-soft);
+}
+
+
+/* =========================================================
+   TEXT COLORS
+   ========================================================= */
+
+.team-profile > p,
+.team-event-top p,
+.event-browser-card p,
+.event-detail-card p,
+.comparison-card > p,
+.favorite-card p,
+.pit-summary-card p,
+.loading-text,
+.match-status {
+  color: var(--q-text-muted);
+}
+
+.team-number,
+.section-heading p,
+.page-header p,
+.teams-header p,
+.matches-header p {
+  color: var(--q-text-muted);
+}
+
+
+/* =========================================================
+   PLACEHOLDERS
+   ========================================================= */
+
+input::placeholder,
+textarea::placeholder {
+  color: #9E7AAA;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+* {
+  scrollbar-color: var(--quantum-purple) var(--q-bg);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--q-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--quantum-purple);
+
+  border: 2px solid var(--q-bg);
+
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--quantum-pink);
+}
+
+
+/* =========================================================
+   RESPONSIVE CONTAINER
+   ========================================================= */
+
+@media (max-width: 700px) {
+  main {
+    width: calc(100% - 32px);
+
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* =========================================================
+   MATCH COLORS — FRC RED / BLUE
+   + MORE QUANTUM PINK
+   ========================================================= */
+
+
+/* ---------- Match card ---------- */
+
+.match-card {
+  border: 1px solid #6f3474;
+  background: #26142f;
+}
+
+.match-title {
+  border-bottom: 1px solid rgba(187, 69, 168, 0.45);
+}
+
+.match-title span,
+.match-status,
+.match-card .versus {
+  color: #bb45a8;
+}
+
+
+/* =========================================================
+   RED ALLIANCE
+   ========================================================= */
+
+.red-alliance,
+.alliance-red {
+  background: rgba(190, 35, 55, 0.13) !important;
+
+  border: 1px solid rgba(235, 65, 80, 0.55) !important;
+
+  border-left: 4px solid #e63946 !important;
+
+  box-shadow:
+    inset 0 0 24px rgba(230, 57, 70, 0.05);
+}
+
+
+/* RED title */
+
+.red-alliance .alliance-title,
+.alliance-red .alliance-title {
+  color: #ff7580 !important;
+}
+
+
+/* RED team buttons */
+
+.red-alliance .match-team-button,
+.alliance-red .match-team-button {
+  background: rgba(230, 57, 70, 0.10) !important;
+
+  border-color: rgba(230, 57, 70, 0.55) !important;
+
+  color: #ffffff !important;
+}
+
+.red-alliance .match-team-button:hover,
+.alliance-red .match-team-button:hover {
+  background: rgba(230, 57, 70, 0.25) !important;
+
+  border-color: #ff5964 !important;
+
+  box-shadow:
+    0 0 12px rgba(230, 57, 70, 0.18);
+}
+
+
+/* RED score */
+
+.red-alliance .match-score,
+.alliance-red .match-score {
+  color: #ff7580 !important;
+}
+
+
+/* =========================================================
+   BLUE ALLIANCE
+   ========================================================= */
+
+.blue-alliance,
+.alliance-blue {
+  background: rgba(35, 100, 210, 0.14) !important;
+
+  border: 1px solid rgba(65, 130, 255, 0.55) !important;
+
+  border-left: 4px solid #3478f6 !important;
+
+  box-shadow:
+    inset 0 0 24px rgba(52, 120, 246, 0.06);
+}
+
+
+/* BLUE title */
+
+.blue-alliance .alliance-title,
+.alliance-blue .alliance-title {
+  color: #73a7ff !important;
+}
+
+
+/* BLUE team buttons */
+
+.blue-alliance .match-team-button,
+.alliance-blue .match-team-button {
+  background: rgba(52, 120, 246, 0.11) !important;
+
+  border-color: rgba(75, 140, 255, 0.55) !important;
+
+  color: #ffffff !important;
+}
+
+.blue-alliance .match-team-button:hover,
+.alliance-blue .match-team-button:hover {
+  background: rgba(52, 120, 246, 0.27) !important;
+
+  border-color: #5994ff !important;
+
+  box-shadow:
+    0 0 12px rgba(52, 120, 246, 0.20);
+}
+
+
+/* BLUE score */
+
+.blue-alliance .match-score,
+.alliance-blue .match-score {
+  color: #73a7ff !important;
+}
+
+
+/* =========================================================
+   MORE #BB45A8 THROUGHOUT THE APP
+   ========================================================= */
+
+
+/* Section labels */
+
+.section-label,
+.matches-label,
+.teams-label,
+.event-key {
+  color: #bb45a8 !important;
+}
+
+
+/* Links */
+
+.match-title button,
+.match-card a,
+.event-open-button {
+  color: #e69bda;
+}
+
+.match-title button:hover,
+.match-card a:hover,
+.event-open-button:hover {
+  color: #ffffff;
+}
+
+
+/* Main active navigation */
+
+.main-nav button.active,
+.scouting-tabs button.active {
+  background: #490d64;
+
+  border-color: #bb45a8;
+
+  box-shadow:
+    inset 0 -2px 0 #bb45a8,
+    0 0 14px rgba(187, 69, 168, 0.18);
+}
+
+
+/* Search / main buttons */
+
+.search-row button,
+.save-scouting-button {
+  background: #490d64;
+
+  border: 1px solid #bb45a8;
+
+  color: #ffffff;
+}
+
+.search-row button:hover,
+.save-scouting-button:hover {
+  background: #bb45a8;
+
+  border-color: #bb45a8;
+
+  color: #ffffff;
+
+  box-shadow:
+    0 0 18px rgba(187, 69, 168, 0.28);
+}
+
+
+/* Quick action hover */
+
+.actions button:hover {
+  background: rgba(187, 69, 168, 0.14);
+
+  border-color: #bb45a8;
+
+  box-shadow:
+    0 0 15px rgba(187, 69, 168, 0.12);
+}
+
+
+/* Card hover */
+
+.event-browser-card:hover,
+.comparison-card:hover,
+.favorite-card:hover {
+  border-color: #bb45a8;
+}
+
+
+/* Inputs */
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #bb45a8 !important;
+
+  box-shadow:
+    0 0 0 3px rgba(187, 69, 168, 0.12) !important;
+}
+
+
+/* Stats labels */
+
+.event-stat span,
+.compare-stat span,
+.dashboard-team-card span {
+  color: #bb45a8;
+}
+
+
+/* Scrollbar */
+
+::-webkit-scrollbar-thumb {
+  background: #490d64;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bb45a8;
+}
+
+/* ===== FINAL BACKGROUND TUNING ===== */
+
+.app-shell {
+  background: #160b1f;
+}
+
+main,
+.main-content {
+  background: #190c22;
+}
+
+/* Tarjetas principales */
+.team-hero,
+.event-browser-card,
+.scouting-history,
+.pit-section,
+.team-performance-section {
+  background: #26142f;
+}
+
+/* Rosa Quantum para pequeños detalles */
+.section-label,
+.eyebrow,
+.event-key,
+.team-number-label {
+  color: #bb45a8;
+}
+
+/* Separadores */
+section {
+  border-color: rgba(187, 69, 168, 0.22);
+}
+
+/* =========================================================
+   EVENT SEARCH SELECT
+   ========================================================= */
+
+.event-search-select {
+  position: relative;
+  width: 100%;
+}
+
+.event-search-select > input {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 13px 15px;
+
+  background: #1d1126;
+  border: 1px solid #593068;
+  border-radius: 9px;
+
+  color: #ffffff;
+  font: inherit;
+
+  outline: none;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.event-search-select > input::placeholder {
+  color: #a98bb3;
+}
+
+.event-search-select > input:focus {
+  border-color: #bb45a8;
+
+  box-shadow:
+    0 0 0 3px rgba(187, 69, 168, 0.12);
+}
+
+
+/* RESULTS */
+
+.event-search-results {
+  position: absolute;
+
+  top: calc(100% + 7px);
+  left: 0;
+  right: 0;
+
+  z-index: 100;
+
+  max-height: 360px;
+  overflow-y: auto;
+
+  padding: 6px;
+
+  background: #1d1126;
+
+  border: 1px solid #754184;
+  border-radius: 10px;
+
+  box-shadow:
+    0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+
+/* RESULT */
+
+.event-search-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  width: 100%;
+
+  padding: 11px 12px;
+
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+
+  color: #ffffff;
+
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    background 0.12s ease,
+    transform 0.12s ease;
+}
+
+.event-search-result:hover {
+  background: rgba(187, 69, 168, 0.14);
+}
+
+.event-search-result strong {
+  margin-top: 3px;
+
+  font-size: 0.92rem;
+}
+
+.event-search-result small {
+  margin-top: 3px;
+
+  color: #c9a9d3;
+}
+
+
+/* EVENT KEY */
+
+.event-search-key {
+  color: #bb45a8;
+
+  font-size: 0.72rem;
+  font-weight: 800;
+
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+
+/* SELECTED EVENT */
+
+.event-search-selected {
+  display: flex;
+  align-items: stretch;
+
+  overflow: hidden;
+
+  background: #26142f;
+
+  border: 1px solid #bb45a8;
+  border-radius: 9px;
+}
+
+.event-search-selected-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+
+  min-width: 0;
+
+  padding: 11px 14px;
+
+  background: transparent;
+  border: 0;
+
+  color: #ffffff;
+
+  text-align: left;
+  cursor: pointer;
+}
+
+.event-search-selected-info:hover {
+  background: rgba(187, 69, 168, 0.08);
+}
+
+.event-search-selected-info strong {
+  margin-top: 2px;
+
+  overflow: hidden;
+
+  max-width: 100%;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-search-selected-info small {
+  margin-top: 3px;
+
+  color: #c9a9d3;
+}
+
+
+/* CLEAR BUTTON */
+
+.event-search-clear {
+  width: 48px;
+
+  background: rgba(73, 13, 100, 0.45);
+
+  border: 0;
+  border-left: 1px solid rgba(187, 69, 168, 0.35);
+
+  color: #bb45a8;
+
+  font-size: 1.5rem;
+
+  cursor: pointer;
+}
+
+.event-search-clear:hover {
+  background: #490d64;
+  color: #ffffff;
+}
+
+
+/* EMPTY SEARCH */
+
+.event-search-empty {
+  padding: 16px;
+
+  color: #c9a9d3;
+
+  text-align: center;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 700px) {
+  .event-search-results {
+    max-height: 280px;
+  }
+
+  .event-search-result {
+    padding: 13px 11px;
+  }
+}
+
+.table-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+}
+.table-sort-button:hover,
+.table-sort-button.active { color: #c04db4; }
+.sort-arrow { font-size: 0.72rem; opacity: 0.8; }
