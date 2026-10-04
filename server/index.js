@@ -2,26 +2,641 @@ const express = require('express')
 const cors = require('cors')
 const crypto = require('crypto')
 const { Pool } = require('pg')
-
 require('dotenv').config()
 
 const app = express()
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 
 app.use(cors())
 app.use(express.json())
 
-const TBA_HEADERS = {
-  'X-TBA-Auth-Key': process.env.TBA_API_KEY
+// ============================================================
+// FIRST FTC EVENTS API
+// ============================================================
+
+const FTC_API_BASE_URL =
+  'https://ftc-api.firstinspires.org/v2.0'
+
+function getFtcHeaders() {
+  const username = process.env.FTC_API_USERNAME
+  const token = process.env.FTC_API_TOKEN
+
+  if (!username || !token) {
+    return null
+  }
+
+  const basicToken = Buffer.from(
+    `${username}:${token}`
+  ).toString('base64')
+
+  return {
+    Authorization: `Basic ${basicToken}`,
+    Accept: 'application/json'
+  }
 }
 
-// MULTIUSER SYNC + POSTGRESQL
+function ftcCredentialsConfigured() {
+  return Boolean(
+    process.env.FTC_API_USERNAME &&
+      process.env.FTC_API_TOKEN
+  )
+}
+
+async function ftcFetch(path) {
+  const headers = getFtcHeaders()
+
+  if (!headers) {
+    const error = new Error(
+      'FTC_API_USERNAME o FTC_API_TOKEN no están configurados'
+    )
+
+    error.status = 503
+    throw error
+  }
+
+  const response = await fetch(
+    `${FTC_API_BASE_URL}${path}`,
+    {
+      headers
+    }
+  )
+
+  if (!response.ok) {
+    let message =
+      `FIRST FTC Events API respondió ${response.status}`
+
+    try {
+      const body = await response.text()
+
+      if (body) {
+        message += `: ${body.slice(0, 300)}`
+      }
+    } catch {
+      // Ignoramos errores leyendo el mensaje.
+    }
+
+    const error = new Error(message)
+    error.status = response.status
+
+    throw error
+  }
+
+  return response.json()
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function numberOrNull(value) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ''
+  ) {
+    return null
+  }
+
+  const number = Number(value)
+
+  return Number.isFinite(number)
+    ? number
+    : null
+}
+
+function firstDefined(...values) {
+  return values.find(
+    (value) =>
+      value !== undefined &&
+      value !== null &&
+      value !== ''
+  )
+}
+
+function makeEventKey(season, eventCode) {
+  return `${season}-${eventCode}`
+}
+
+function parseEventKey(eventKey) {
+  const match = String(eventKey).match(
+    /^(\d{4})-(.+)$/
+  )
+
+  if (!match) {
+    return null
+  }
+
+  return {
+    season: Number(match[1]),
+    eventCode: match[2]
+  }
+}
+
+async function findEventFromSeasonList(
+  season,
+  eventCode
+) {
+  const data = await ftcFetch(
+    `/${season}/events`
+  )
+
+  const events = Array.isArray(data.events)
+    ? data.events
+    : []
+
+  const requestedCode = String(eventCode)
+    .trim()
+    .toUpperCase()
+
+  return (
+    events.find((event) => {
+      const apiCode = String(
+        event.code ??
+          event.eventCode ??
+          ''
+      )
+        .trim()
+        .toUpperCase()
+
+      return apiCode === requestedCode
+    }) || null
+  )
+}
+
+function normalizeEvent(event, season) {
+  const eventCode = firstDefined(
+    event.code,
+    event.eventCode
+  )
+
+  return {
+    key: makeEventKey(
+      season,
+      eventCode
+    ),
+
+    eventCode,
+
+    name: firstDefined(
+      event.name,
+      event.eventName,
+      eventCode
+    ),
+
+    year: Number(season),
+
+    city: firstDefined(
+      event.city,
+      event.venueCity
+    ) ?? null,
+
+    state: firstDefined(
+      event.stateprov,
+      event.stateProv,
+      event.state,
+      event.venueStateProv
+    ) ?? null,
+
+    country: firstDefined(
+      event.country,
+      event.venueCountry
+    ) ?? null,
+
+    startDate: firstDefined(
+      event.dateStart,
+      event.startDate
+    ) ?? null,
+
+    endDate: firstDefined(
+      event.dateEnd,
+      event.endDate
+    ) ?? null,
+
+    eventType: firstDefined(
+      event.type,
+      event.eventType
+    ) ?? null,
+
+    website: firstDefined(
+      event.website,
+      event.web
+    ) ?? null,
+
+    divisionCode:
+      event.divisionCode ?? null,
+
+    regionCode:
+      event.regionCode ?? null
+  }
+}
+
+function normalizeTeam(team) {
+  return {
+    teamNumber: numberOrNull(
+      firstDefined(
+        team.teamNumber,
+        team.number
+      )
+    ),
+
+    name: firstDefined(
+      team.nameShort,
+      team.nameFull,
+      team.name,
+      team.nickname
+    ) ?? null,
+
+    fullName: firstDefined(
+      team.nameFull,
+      team.name
+    ) ?? null,
+
+    city: team.city ?? null,
+
+    state: firstDefined(
+      team.stateProv,
+      team.stateprov,
+      team.state
+    ) ?? null,
+
+    country: team.country ?? null,
+
+    rookieYear: numberOrNull(
+      firstDefined(
+        team.rookieYear,
+        team.rookie
+      )
+    ),
+
+    website: firstDefined(
+      team.website,
+      team.web
+    ) ?? null,
+
+    schoolName:
+      team.schoolName ?? null,
+
+    districtCode:
+      team.districtCode ?? null,
+
+    homeCMP:
+      team.homeCMP ?? null
+  }
+}
+
+function normalizeRanking(ranking) {
+  const wins = numberOrNull(
+    firstDefined(
+      ranking.wins,
+      ranking.winCount
+    )
+  ) ?? 0
+
+  const losses = numberOrNull(
+    firstDefined(
+      ranking.losses,
+      ranking.lossCount
+    )
+  ) ?? 0
+
+  const ties = numberOrNull(
+    firstDefined(
+      ranking.ties,
+      ranking.tieCount
+    )
+  ) ?? 0
+
+  return {
+    rank:
+      numberOrNull(ranking.rank),
+
+    teamNumber:
+      numberOrNull(
+        firstDefined(
+          ranking.teamNumber,
+          ranking.team
+        )
+      ),
+
+    record: {
+      wins,
+      losses,
+      ties
+    },
+
+    matchesPlayed:
+      numberOrNull(
+        firstDefined(
+          ranking.matchesPlayed,
+          ranking.played
+        )
+      ) ??
+      wins + losses + ties,
+
+    dq:
+      numberOrNull(
+        firstDefined(
+          ranking.dq,
+          ranking.disqualified
+        )
+      ) ?? 0,
+
+    rankingPoints:
+      numberOrNull(
+        firstDefined(
+          ranking.rankingPoints,
+          ranking.rp
+        )
+      ),
+
+    qualifyingPoints:
+      numberOrNull(
+        firstDefined(
+          ranking.qualifyingPoints,
+          ranking.qp
+        )
+      ),
+
+    sortOrder1:
+      numberOrNull(ranking.sortOrder1),
+
+    sortOrder2:
+      numberOrNull(ranking.sortOrder2),
+
+    sortOrder3:
+      numberOrNull(ranking.sortOrder3),
+
+    sortOrder4:
+      numberOrNull(ranking.sortOrder4),
+
+    sortOrder5:
+      numberOrNull(ranking.sortOrder5),
+
+    sortOrder6:
+      numberOrNull(ranking.sortOrder6)
+  }
+}
+
+function getMatchTeams(match) {
+  const red = []
+  const blue = []
+
+  const teams =
+    match.teams ||
+    match.matchTeams ||
+    []
+
+  if (Array.isArray(teams)) {
+    teams.forEach((team) => {
+      const teamNumber =
+        numberOrNull(
+          firstDefined(
+            team.teamNumber,
+            team.team
+          )
+        )
+
+      if (!teamNumber) {
+        return
+      }
+
+      const station = String(
+        firstDefined(
+          team.station,
+          team.alliance,
+          ''
+        )
+      ).toLowerCase()
+
+      if (station.includes('red')) {
+        red.push(teamNumber)
+      }
+
+      if (station.includes('blue')) {
+        blue.push(teamNumber)
+      }
+    })
+  }
+
+  const directRed = [
+    match.red1,
+    match.red2,
+    match.redTeam1,
+    match.redTeam2
+  ]
+    .map(numberOrNull)
+    .filter(Boolean)
+
+  const directBlue = [
+    match.blue1,
+    match.blue2,
+    match.blueTeam1,
+    match.blueTeam2
+  ]
+    .map(numberOrNull)
+    .filter(Boolean)
+
+  return {
+    red:
+      red.length > 0
+        ? [...new Set(red)]
+        : [...new Set(directRed)],
+
+    blue:
+      blue.length > 0
+        ? [...new Set(blue)]
+        : [...new Set(directBlue)]
+  }
+}
+
+function normalizeMatch(
+  match,
+  eventKey,
+  defaultLevel
+) {
+  const teams = getMatchTeams(match)
+
+  const rawLevel = String(
+    firstDefined(
+      match.tournamentLevel,
+      defaultLevel,
+      'qual'
+    )
+  )
+    .trim()
+    .toLowerCase()
+
+  const level =
+    rawLevel === 'qual' ||
+    rawLevel === 'qualification' ||
+    rawLevel === 'qualifications'
+      ? 'qual'
+      : rawLevel === 'playoff' ||
+          rawLevel === 'playoffs' ||
+          rawLevel === 'elim' ||
+          rawLevel === 'elimination'
+        ? 'playoff'
+        : String(defaultLevel || 'qual')
+            .trim()
+            .toLowerCase() === 'playoff'
+          ? 'playoff'
+          : 'qual'
+
+  const matchNumber =
+    numberOrNull(
+      firstDefined(
+        match.matchNumber,
+        match.match
+      )
+    ) ?? 0
+
+  const series =
+    numberOrNull(
+      firstDefined(
+        match.series,
+        match.seriesNumber
+      )
+    ) ?? 0
+
+  const compLevel =
+    level === 'qual'
+      ? 'qm'
+      : 'po'
+
+  const redScore =
+    numberOrNull(
+      firstDefined(
+        match.scoreRedFinal,
+        match.redScore,
+        match.scoreRed
+      )
+    )
+
+  const blueScore =
+    numberOrNull(
+      firstDefined(
+        match.scoreBlueFinal,
+        match.blueScore,
+        match.scoreBlue
+      )
+    )
+
+  let winningAlliance = null
+
+  if (
+    redScore !== null &&
+    blueScore !== null
+  ) {
+    if (redScore > blueScore) {
+      winningAlliance = 'red'
+    } else if (blueScore > redScore) {
+      winningAlliance = 'blue'
+    } else {
+      winningAlliance = ''
+    }
+  }
+
+  const name =
+    level === 'qual'
+      ? `Qualification ${matchNumber}`
+      : series > 0
+        ? `Playoff ${series}-${matchNumber}`
+        : `Playoff ${matchNumber}`
+
+  return {
+    key:
+      `${eventKey}_${level}_${series}_${matchNumber}`,
+
+    name,
+
+    compLevel,
+
+    tournamentLevel: level,
+
+    setNumber: series,
+
+    matchNumber,
+
+    predictedTime:
+      firstDefined(
+        match.startTime,
+        match.predictedTime,
+        match.scheduledTime
+      ) ?? null,
+
+    actualTime:
+      firstDefined(
+        match.actualStartTime,
+        match.actualTime
+      ) ?? null,
+
+    winningAlliance,
+
+    red: {
+      teams: teams.red,
+      score: redScore
+    },
+
+    blue: {
+      teams: teams.blue,
+      score: blueScore
+    }
+  }
+}
+
+function sendFtcError(
+  res,
+  error,
+  fallback
+) {
+  console.error(
+    fallback,
+    error.message
+  )
+
+  const status =
+    Number.isInteger(error.status)
+      ? error.status
+      : 500
+
+  if (status === 401) {
+    return res.status(401).json({
+      error:
+        'FIRST rechazó las credenciales de FTC Events API'
+    })
+  }
+
+  if (status === 404) {
+    return res.status(404).json({
+      error: fallback
+    })
+  }
+
+  return res.status(status).json({
+    error: fallback,
+
+    details:
+      process.env.NODE_ENV === 'production'
+        ? undefined
+        : error.message
+  })
+}
+
+// ============================================================
+// POSTGRESQL / NEON
+// ============================================================
+
 const pool = process.env.DATABASE_URL
   ? new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString:
+        process.env.DATABASE_URL,
+
       ssl:
-        process.env.NODE_ENV === 'production'
-          ? { rejectUnauthorized: false }
+        process.env.NODE_ENV ===
+        'production'
+          ? {
+              rejectUnauthorized: false
+            }
           : false
     })
   : null
@@ -29,14 +644,26 @@ const pool = process.env.DATABASE_URL
 const authToken = () =>
   crypto
     .createHash('sha256')
-    .update(process.env.SCOUTING_PASSWORD || '')
+    .update(
+      process.env.SCOUTING_PASSWORD || ''
+    )
     .digest('hex')
 
-const requireSyncAuth = (req, res, next) => {
+const requireSyncAuth = (
+  req,
+  res,
+  next
+) => {
   const received =
-    req.headers.authorization?.replace(/^Bearer\s+/i, '') || ''
+    req.headers.authorization?.replace(
+      /^Bearer\s+/i,
+      ''
+    ) || ''
 
-  if (!process.env.SCOUTING_PASSWORD || received !== authToken()) {
+  if (
+    !process.env.SCOUTING_PASSWORD ||
+    received !== authToken()
+  ) {
     return res.status(401).json({
       error: 'No autorizado'
     })
@@ -50,6 +677,7 @@ async function initializeDatabase() {
     console.warn(
       'DATABASE_URL no está configurada. Sync multiusuario desactivado.'
     )
+
     return
   }
 
@@ -77,681 +705,1267 @@ async function initializeDatabase() {
     );
   `)
 
-  console.log('Base de datos Quantum lista.')
+  console.log(
+    'Base de datos Quantum FTC lista.'
+  )
 }
 
 initializeDatabase().catch((error) =>
-  console.error('Error inicializando PostgreSQL:', error)
+  console.error(
+    'Error inicializando PostgreSQL:',
+    error
+  )
 )
 
-async function getStatboticsEventTeams(eventKey) {
-  try {
-    const response = await fetch(
-      `https://api.statbotics.io/v3/team_events?event=${encodeURIComponent(
-        eventKey
-      )}&limit=1000`
-    )
-
-    if (!response.ok) {
-      return []
-    }
-
-    const data = await response.json()
-
-    return Array.isArray(data) ? data : []
-  } catch (error) {
-    console.error(`Error obteniendo EPA de ${eventKey}:`, error)
-    return []
-  }
-}
-
-function getStatboticsEpa(row) {
-  const candidates = [
-    row?.epa?.total_points?.mean,
-    row?.epa?.breakdown?.total_points,
-    row?.epa?.mean,
-    row?.epa_end,
-    row?.epa
-  ]
-
-  return (
-    candidates.find(
-      (value) =>
-        typeof value === 'number' &&
-        Number.isFinite(value)
-    ) ?? null
-  )
-}
-
-// OPR FINAL DE LA TEMPORADA ANTERIOR
-// Guardamos resultados en memoria para no repetir
-// las mismas consultas a TBA.
-
-const previousSeasonOprCache = new Map()
-const eventOprCache = new Map()
-
-async function getEventOprData(eventKey) {
-  if (eventOprCache.has(eventKey)) {
-    return eventOprCache.get(eventKey)
-  }
-
-  const request = (async () => {
-    try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/event/${eventKey}/oprs`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!response.ok) {
-        return null
-      }
-
-      const data = await response.json()
-
-      if (!data || typeof data !== 'object') {
-        return null
-      }
-
-      return data
-    } catch (error) {
-      console.error(
-        `Error obteniendo OPR de ${eventKey}:`,
-        error
-      )
-
-      return null
-    }
-  })()
-
-  eventOprCache.set(eventKey, request)
-
-  return request
-}
-
-async function getPreviousSeasonAverageOpr(
-  teamNumber,
-  currentYear
-) {
-  const previousYear = Number(currentYear) - 1
-  const teamKey = `frc${teamNumber}`
-  const cacheKey = `${teamKey}-${previousYear}-average`
-
-  if (previousSeasonOprCache.has(cacheKey)) {
-    return previousSeasonOprCache.get(cacheKey)
-  }
-
-  const request = (async () => {
-    try {
-      const eventsResponse = await fetch(
-        `https://www.thebluealliance.com/api/v3/team/${teamKey}/events/${previousYear}`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!eventsResponse.ok) {
-        return null
-      }
-
-      const events = await eventsResponse.json()
-
-      if (!Array.isArray(events) || events.length === 0) {
-        return null
-      }
-
-      // TBA event_type 99 = offseason.
-      // No cuenta para el promedio.
-      const officialEvents = events.filter(
-        (event) => event.event_type !== 99
-      )
-
-      const oprValues = []
-
-      for (const event of officialEvents) {
-        const oprData = await getEventOprData(event.key)
-        const opr = oprData?.oprs?.[teamKey]
-
-        if (
-          typeof opr === 'number' &&
-          Number.isFinite(opr)
-        ) {
-          oprValues.push(opr)
-        }
-      }
-
-      if (oprValues.length === 0) {
-        return null
-      }
-
-      return (
-        oprValues.reduce(
-          (sum, opr) => sum + opr,
-          0
-        ) / oprValues.length
-      )
-    } catch (error) {
-      console.error(
-        `Error obteniendo OPR promedio ${previousYear} de ${teamKey}:`,
-        error
-      )
-
-      return null
-    }
-  })()
-
-  previousSeasonOprCache.set(
-    cacheKey,
-    request
-  )
-
-  return request
-}
+// ============================================================
+// ROOT
+// ============================================================
 
 app.get('/', (req, res) => {
   res.json({
-    message: 'Quantum Scouting API funcionando'
+    message:
+      'Quantum FTC Scouting API funcionando',
+
+    source:
+      'FIRST FTC Events API',
+
+    ftcApiConfigured:
+      ftcCredentialsConfigured()
   })
 })
 
-// LOGIN DE QUANTUM SCOUTING
+// ============================================================
+// LOGIN
+// ============================================================
 
-app.post('/api/auth/login', (req, res) => {
-  const { password } = req.body
-  const correctPassword =
-    process.env.SCOUTING_PASSWORD
+app.post(
+  '/api/auth/login',
+  (req, res) => {
+    const { password } = req.body
 
-  if (!correctPassword) {
-    console.error(
-      'SCOUTING_PASSWORD no está configurada'
+    const correctPassword =
+      process.env.SCOUTING_PASSWORD
+
+    if (!correctPassword) {
+      return res.status(500).json({
+        ok: false,
+
+        error:
+          'La contraseña del servidor no está configurada'
+      })
+    }
+
+    if (
+      typeof password !== 'string' ||
+      password !== correctPassword
+    ) {
+      return res.status(401).json({
+        ok: false,
+        error: 'Contraseña incorrecta'
+      })
+    }
+
+    return res.json({
+      ok: true,
+      token: authToken()
+    })
+  }
+)
+
+// ============================================================
+// INFORMACIÓN DE TEMPORADA
+// ============================================================
+
+app.get(
+  '/api/season/:year',
+  async (req, res) => {
+    const year = Number(req.params.year)
+
+    try {
+      const data =
+        await ftcFetch(`/${year}`)
+
+      res.json({
+        year,
+
+        gameName:
+          data.gameName ?? null,
+
+        eventCount:
+          data.eventCount ?? 0,
+
+        teamCount:
+          data.teamCount ?? 0,
+
+        kickoff:
+          data.kickoff ?? null,
+
+        rookieStart:
+          data.rookieStart ?? null
+      })
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudo obtener la temporada'
+      )
+    }
+  }
+)
+
+// ============================================================
+// EVENTOS DE UNA TEMPORADA
+// ============================================================
+
+app.get(
+  '/api/events/:year',
+  async (req, res) => {
+    const year = Number(req.params.year)
+
+    try {
+      const data =
+        await ftcFetch(
+          `/${year}/events`
+        )
+
+      const events =
+        Array.isArray(data.events)
+          ? data.events
+          : []
+
+      const formattedEvents =
+        events
+          .map((event) =>
+            normalizeEvent(
+              event,
+              year
+            )
+          )
+          .filter(
+            (event) =>
+              event.eventCode
+          )
+          .sort((a, b) => {
+            if (!a.startDate) return 1
+            if (!b.startDate) return -1
+
+            return (
+              new Date(a.startDate) -
+              new Date(b.startDate)
+            )
+          })
+
+      res.json(formattedEvents)
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los eventos'
+      )
+    }
+  }
+)
+
+// ============================================================
+// INFORMACIÓN GENERAL DE UN EVENTO
+// ============================================================
+
+app.get(
+  '/api/event/:eventKey',
+  async (req, res) => {
+    const parsed = parseEventKey(
+      req.params.eventKey
     )
 
-    return res.status(500).json({
-      ok: false,
-      error:
-        'La contraseña del servidor no está configurada'
-    })
+    if (!parsed) {
+      return res.status(400).json({
+        error: 'Event key FTC inválido'
+      })
+    }
+
+    const {
+      season,
+      eventCode
+    } = parsed
+
+    try {
+      const event =
+        await findEventFromSeasonList(
+          season,
+          eventCode
+        )
+
+      if (!event) {
+        return res.status(404).json({
+          error: 'Evento no encontrado',
+          eventCode,
+          season
+        })
+      }
+
+      return res.json(
+        normalizeEvent(
+          event,
+          season
+        )
+      )
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudo obtener el evento'
+      )
+    }
   }
+)
 
-  if (
-    typeof password !== 'string' ||
-    password !== correctPassword
-  ) {
-    return res.status(401).json({
-      ok: false,
-      error: 'Contraseña incorrecta'
-    })
+// ============================================================
+// DEBUG DE EVENTOS
+// ============================================================
+
+app.get(
+  '/api/debug/events/:year',
+  async (req, res) => {
+    const year = Number(req.params.year)
+
+    try {
+      const data =
+        await ftcFetch(
+          `/${year}/events`
+        )
+
+      const events =
+        Array.isArray(data.events)
+          ? data.events
+          : []
+
+      const mexicoEvents =
+        events.filter((event) =>
+          JSON.stringify(event)
+            .toLowerCase()
+            .includes('mexico')
+        )
+
+      res.json(mexicoEvents)
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los eventos originales'
+      )
+    }
   }
+)
 
-  return res.json({
-    ok: true,
-    token: authToken()
-  })
-})
-
+// ============================================================
 // INFORMACIÓN GENERAL DE UN EQUIPO
+// ============================================================
 
 app.get(
   '/api/team/:teamNumber',
   async (req, res) => {
-    const { teamNumber } = req.params
+    const teamNumber =
+      Number(req.params.teamNumber)
+
+    const requestedYear =
+      Number(req.query.year)
+
+    let season =       Number.isInteger(requestedYear) &&
+      requestedYear >= 2019
+        ? requestedYear
+        : null
 
     try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/team/frc${teamNumber}`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
+      if (!season) {
+        const apiInfo =
+          await ftcFetch('')
 
-      if (!response.ok) {
-        return res
-          .status(response.status)
-          .json({
-            error:
-              'No se pudo encontrar el equipo'
-          })
+        season =
+          numberOrNull(
+            apiInfo.currentSeason
+          ) ||
+          numberOrNull(
+            apiInfo.maxSeason
+          ) ||
+          new Date().getFullYear()
       }
 
-      const data = await response.json()
+      const data =
+        await ftcFetch(
+          `/${season}/teams?teamNumber=${teamNumber}`
+        )
+
+      const team =
+        data.teams?.[0]
+
+      if (!team) {
+        return res.status(404).json({
+          error:
+            'No se pudo encontrar el equipo'
+        })
+      }
 
       res.json({
-        teamNumber: data.team_number,
-        name: data.nickname,
-        city: data.city,
-        state: data.state_prov,
-        country: data.country,
-        rookieYear: data.rookie_year,
-        website: data.website
+        ...normalizeTeam(team),
+        season
       })
     } catch (error) {
-      console.error(error)
-
-      res.status(500).json({
-        error:
-          'Error al conectar con The Blue Alliance'
-      })
+      sendFtcError(
+        res,
+        error,
+        'No se pudo obtener el equipo'
+      )
     }
   }
 )
 
+// ============================================================
+// EVENTOS DE UN EQUIPO
+// ============================================================
+
+app.get(
+  '/api/team/:teamNumber/events/:year',
+  async (req, res) => {
+    const teamNumber =
+      Number(req.params.teamNumber)
+
+    const year =
+      Number(req.params.year)
+
+    try {
+      const data =
+        await ftcFetch(
+          `/${year}/events?teamNumber=${teamNumber}`
+        )
+
+      const events =
+        Array.isArray(data.events)
+          ? data.events
+          : []
+
+      res.json(
+        events
+          .map((event) =>
+            normalizeEvent(
+              event,
+              year
+            )
+          )
+          .sort((a, b) => {
+            if (!a.startDate) return 1
+            if (!b.startDate) return -1
+
+            return (
+              new Date(a.startDate) -
+              new Date(b.startDate)
+            )
+          })
+      )
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los eventos del equipo'
+      )
+    }
+  }
+)
+
+// ============================================================
+// EQUIPOS DE UN EVENTO
+// ============================================================
+
+app.get(
+  '/api/event/:eventKey/teams',
+  async (req, res) => {
+    const parsed =
+      parseEventKey(
+        req.params.eventKey
+      )
+
+    if (!parsed) {
+      return res.status(400).json({
+        error:
+          'Event key FTC inválido'
+      })
+    }
+
+    const {
+      season,
+      eventCode
+    } = parsed
+
+    try {
+      const event =
+        await findEventFromSeasonList(
+          season,
+          eventCode
+        )
+
+      if (!event) {
+        return res.status(404).json({
+          error: 'Evento no encontrado',
+          season,
+          eventCode
+        })
+      }
+
+      let teamsData = {
+        teams: []
+      }
+
+      let rankingsData = {
+        rankings: []
+      }
+
+      try {
+        teamsData =
+          await ftcFetch(
+            `/${season}/teams?eventCode=${encodeURIComponent(
+              eventCode
+            )}&excludeNonCompeting=true`
+          )
+      } catch (error) {
+        if (error.status !== 404) {
+          throw error
+        }
+
+        console.warn(
+          `FIRST no devolvió equipos para ${season}-${eventCode}: ${error.message}`
+        )
+      }
+
+      try {
+        rankingsData =
+          await ftcFetch(
+            `/${season}/rankings/${encodeURIComponent(
+              eventCode
+            )}`
+          )
+      } catch (error) {
+        if (error.status !== 404) {
+          console.warn(
+            `No se pudo obtener el ranking de ${season}-${eventCode}: ${error.message}`
+          )
+        }
+      }
+
+      const teams =
+        Array.isArray(teamsData.teams)
+          ? teamsData.teams
+          : []
+
+      const rankings =
+        Array.isArray(
+          rankingsData.rankings
+        )
+          ? rankingsData.rankings.map(
+              normalizeRanking
+            )
+          : []
+
+      const rankingMap =
+        new Map(
+          rankings.map(
+            (ranking) => [
+              Number(
+                ranking.teamNumber
+              ),
+              ranking
+            ]
+          )
+        )
+
+      const formattedTeams =
+        teams
+          .map((team) => {
+            const normalized =
+              normalizeTeam(team)
+
+            const ranking =
+              rankingMap.get(
+                Number(
+                  normalized.teamNumber
+                )
+              )
+
+            return {
+              ...normalized,
+
+              rank:
+                ranking?.rank ??
+                null,
+
+              record:
+                ranking?.record ?? {
+                  wins: 0,
+                  losses: 0,
+                  ties: 0
+                },
+
+              matchesPlayed:
+                ranking?.matchesPlayed ??
+                0,
+
+              rankingPoints:
+                ranking?.rankingPoints ??
+                null,
+
+              qualifyingPoints:
+                ranking?.qualifyingPoints ??
+                null,
+
+              opr: null,
+              dpr: null,
+              ccwm: null,
+              epa: null,
+              epaRank: null,
+              averageOpr: null,
+              averageOprYear: null
+            }
+          })
+          .sort(
+            (a, b) =>
+              a.teamNumber -
+              b.teamNumber
+          )
+
+      return res.json(
+        formattedTeams
+      )
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los equipos del evento'
+      )
+    }
+  }
+)
+
+// ============================================================
+// RANKINGS
+// ============================================================
+
+app.get(
+  '/api/event/:eventKey/rankings',
+  async (req, res) => {
+    const parsed =
+      parseEventKey(
+        req.params.eventKey
+      )
+
+    if (!parsed) {
+      return res.status(400).json({
+        error:
+          'Event key FTC inválido'
+      })
+    }
+
+    const {
+      season,
+      eventCode
+    } = parsed
+
+    try {
+      const data =
+        await ftcFetch(
+          `/${season}/rankings/${encodeURIComponent(
+            eventCode
+          )}`
+        )
+
+      const rankings =
+        Array.isArray(data.rankings)
+          ? data.rankings.map(
+              normalizeRanking
+            )
+          : []
+
+      res.json(rankings)
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudo obtener el ranking del evento'
+      )
+    }
+  }
+)
+
+// ============================================================
 // INFORMACIÓN DEL EQUIPO EN UN EVENTO
+// ============================================================
 
 app.get(
   '/api/team/:teamNumber/event/:eventKey',
   async (req, res) => {
+    const teamNumber =
+      Number(req.params.teamNumber)
+
+    const parsed =
+      parseEventKey(
+        req.params.eventKey
+      )
+
+    if (!parsed) {
+      return res.status(400).json({
+        error:
+          'Event key FTC inválido'
+      })
+    }
+
     const {
-      teamNumber,
-      eventKey
-    } = req.params
+      season,
+      eventCode
+    } = parsed
 
     try {
-      const [
-        oprResponse,
-        rankingsResponse,
-        eventResponse
-      ] = await Promise.all([
-        fetch(
-          `https://www.thebluealliance.com/api/v3/event/${eventKey}/oprs`,
-          {
-            headers: TBA_HEADERS
-          }
-        ),
-
-        fetch(
-          `https://www.thebluealliance.com/api/v3/event/${eventKey}/rankings`,
-          {
-            headers: TBA_HEADERS
-          }
-        ),
-
-        fetch(
-          `https://www.thebluealliance.com/api/v3/event/${eventKey}`,
-          {
-            headers: TBA_HEADERS
-          }
+      const event =
+        await findEventFromSeasonList(
+          season,
+          eventCode
         )
-      ])
 
-      if (!eventResponse.ok) {
+      if (!event) {
         return res.status(404).json({
-          error: 'Evento no encontrado'
+          error:
+            'Evento no encontrado'
         })
       }
 
-      const eventData =
-        await eventResponse.json()
+      let ranking = null
 
-      // OPR / DPR / CCWM
-
-      let opr = null
-      let dpr = null
-      let ccwm = null
-
-      if (oprResponse.ok) {
-        const oprData =
-          await oprResponse.json()
-
-        const teamKey =
-          `frc${teamNumber}`
-
-        if (
-          oprData &&
-          typeof oprData === 'object'
-        ) {
-          opr =
-            oprData.oprs?.[teamKey] ??
-            null
-
-          dpr =
-            oprData.dprs?.[teamKey] ??
-            null
-
-          ccwm =
-            oprData.ccwms?.[teamKey] ??
-            null
-        }
-      }
-
-      // RANKING / RECORD
-
-      let rank = null
-
-      let record = {
-        wins: 0,
-        losses: 0,
-        ties: 0
-      }
-
-      if (rankingsResponse.ok) {
-        const rankingsData =
-          await rankingsResponse.json()
-
-        const teamRanking =
-          rankingsData?.rankings?.find(
-            (team) =>
-              team.team_key ===
-              `frc${teamNumber}`
+      try {
+        const rankingData =
+          await ftcFetch(
+            `/${season}/rankings/${encodeURIComponent(
+              eventCode
+            )}?teamNumber=${teamNumber}`
           )
 
-        if (teamRanking) {
-          rank = teamRanking.rank
-
-          record = {
-            wins:
-              teamRanking.record?.wins ??
-              0,
-
-            losses:
-              teamRanking.record
-                ?.losses ?? 0,
-
-            ties:
-              teamRanking.record?.ties ??
-              0
-          }
+        if (
+          Array.isArray(
+            rankingData.rankings
+          ) &&
+          rankingData.rankings.length > 0
+        ) {
+          ranking =
+            normalizeRanking(
+              rankingData.rankings[0]
+            )
+        }
+      } catch (error) {
+        if (error.status !== 404) {
+          console.warn(
+            `No se pudo obtener el ranking del equipo ${teamNumber}: ${error.message}`
+          )
         }
       }
 
       res.json({
-        teamNumber:
-          Number(teamNumber),
+        teamNumber,
 
-        event: {
-          key: eventData.key,
-          name: eventData.name,
-          year: eventData.year,
-          city: eventData.city,
-          state: eventData.state_prov,
-          country: eventData.country,
-          startDate:
-            eventData.start_date,
-          endDate:
-            eventData.end_date
-        },
+        event:
+          normalizeEvent(
+            event,
+            season
+          ),
 
         stats: {
-          opr,
-          dpr,
-          ccwm,
-          rank,
-          record
+          rank:
+            ranking?.rank ?? null,
+
+          record:
+            ranking?.record ?? {
+              wins: 0,
+              losses: 0,
+              ties: 0
+            },
+
+          matchesPlayed:
+            ranking?.matchesPlayed ??
+            0,
+
+          rankingPoints:
+            ranking?.rankingPoints ??
+            null,
+
+          qualifyingPoints:
+            ranking?.qualifyingPoints ??
+            null,
+
+          opr: null,
+          dpr: null,
+          ccwm: null
         }
       })
     } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los datos del equipo en el evento'
+      )
+    }
+  }
+)
 
-          console.error(error)
+// ============================================================
+// MATCHES / HYBRID SCHEDULE
+// ============================================================
+
+async function getHybridSchedule(
+  season,
+  eventCode,
+  level
+) {
+  const data =
+    await ftcFetch(
+      `/${season}/schedule/${encodeURIComponent(
+        eventCode
+      )}/${level}/hybrid`
+    )
+
+  return Array.isArray(data.schedule)
+    ? data.schedule
+    : []
+}
+
+app.get(
+  '/api/event/:eventKey/matches',
+  async (req, res) => {
+    const eventKey =
+      req.params.eventKey
+
+    const parsed =
+      parseEventKey(eventKey)
+
+    if (!parsed) {
+      return res.status(400).json({
+        error:
+          'Event key FTC inválido'
+      })
+    }
+
+    const {
+      season,
+      eventCode
+    } = parsed
+
+    try {
+      const [
+        qualificationMatches,
+        playoffMatches
+      ] = await Promise.all([
+        getHybridSchedule(
+  season,
+  eventCode,
+  'qual'
+).catch(() => []),
+
+getHybridSchedule(
+  season,
+  eventCode,
+  'playoff'
+).catch(() => [])
+      ])
+
+      const formatted = [
+        ...qualificationMatches.map(
+          (match) =>
+            normalizeMatch(
+              match,
+              eventKey,
+              'qual'
+            )
+        ),
+
+        ...playoffMatches.map(
+          (match) =>
+            normalizeMatch(
+              match,
+              eventKey,
+              'playoff'
+            )
+        )
+      ]
+
+      formatted.sort((a, b) => {
+        const levelA =
+          a.tournamentLevel ===
+          'qual'
+            ? 1
+            : 2
+
+        const levelB =
+          b.tournamentLevel ===
+          'qual'
+            ? 1
+            : 2
+
+        if (levelA !== levelB) {
+          return levelA - levelB
+        }
+
+        if (
+          a.setNumber !==
+          b.setNumber
+        ) {
+          return (
+            a.setNumber -
+            b.setNumber
+          )
+        }
+
+        return (
+          a.matchNumber -
+          b.matchNumber
+        )
+      })
+
+      res.json(formatted)
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los matches del evento'
+      )
+    }
+  }
+)
+
+// ============================================================
+// MATCHES DE UN EQUIPO EN UN EVENTO
+// ============================================================
+
+app.get(
+  '/api/team/:teamNumber/event/:eventKey/matches',
+  async (req, res) => {
+    const teamNumber =
+      Number(req.params.teamNumber)
+
+    const eventKey =
+      req.params.eventKey
+
+    const parsed =
+      parseEventKey(eventKey)
+
+    if (!parsed) {
+      return res.status(400).json({
+        error:
+          'Event key FTC inválido'
+      })
+    }
+
+    const {
+      season,
+      eventCode
+    } = parsed
+
+    try {
+      const [
+        qualificationMatches,
+        playoffMatches
+      ] = await Promise.all([
+        getHybridSchedule(
+          season,
+          eventCode,
+          'qual'
+        ).catch(() => []),
+
+        getHybridSchedule(
+          season,
+          eventCode,
+          'playoff'
+        ).catch(() => [])
+      ])
+
+      const matches = [
+        ...qualificationMatches.map(
+          (match) =>
+            normalizeMatch(
+              match,
+              eventKey,
+              'qual'
+            )
+        ),
+
+        ...playoffMatches.map(
+          (match) =>
+            normalizeMatch(
+              match,
+              eventKey,
+              'playoff'
+            )
+        )
+      ]
+        .filter((match) =>
+          [
+            ...match.red.teams,
+            ...match.blue.teams
+          ].includes(teamNumber)
+        )
+        .sort((a, b) => {
+          const levelA =
+            a.tournamentLevel === 'qual'
+              ? 1
+              : 2
+
+          const levelB =
+            b.tournamentLevel === 'qual'
+              ? 1
+              : 2
+
+          if (levelA !== levelB) {
+            return levelA - levelB
+          }
+
+          if (
+            a.setNumber !==
+            b.setNumber
+          ) {
+            return (
+              a.setNumber -
+              b.setNumber
+            )
+          }
+
+          return (
+            a.matchNumber -
+            b.matchNumber
+          )
+        })
+
+      res.json(matches)
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los matches del equipo'
+      )
+    }
+  }
+)
+
+// ============================================================
+// PREMIOS DE UN EVENTO
+// ============================================================
+
+app.get(
+  '/api/event/:eventKey/awards',
+  async (req, res) => {
+    const parsed =
+      parseEventKey(
+        req.params.eventKey
+      )
+
+    if (!parsed) {
+      return res.status(400).json({
+        error:
+          'Event key FTC inválido'
+      })
+    }
+
+    const {
+      season,
+      eventCode
+    } = parsed
+
+    try {
+      const data =
+        await ftcFetch(
+          `/${season}/awards/${encodeURIComponent(
+            eventCode
+          )}`
+        )
+
+      res.json(
+        Array.isArray(data.awards)
+          ? data.awards
+          : []
+      )
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los premios'
+      )
+    }
+  }
+)
+
+// ============================================================
+// PREMIOS DE UN EQUIPO EN UN EVENTO
+// ============================================================
+
+app.get(
+  '/api/team/:teamNumber/event/:eventKey/awards',
+  async (req, res) => {
+    const teamNumber =
+      Number(req.params.teamNumber)
+
+    const parsed =
+      parseEventKey(
+        req.params.eventKey
+      )
+
+    if (!parsed) {
+      return res.status(400).json({
+        error:
+          'Event key FTC inválido'
+      })
+    }
+
+    const {
+      season,
+      eventCode
+    } = parsed
+
+    try {
+      const data =
+        await ftcFetch(
+          `/${season}/awards/${encodeURIComponent(
+            eventCode
+          )}?teamNumber=${teamNumber}`
+        )
+
+      res.json(
+        Array.isArray(data.awards)
+          ? data.awards
+          : []
+      )
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los premios del equipo'
+      )
+    }
+  }
+)
+
+// ============================================================
+// PREMIOS DE UN EQUIPO EN UNA TEMPORADA
+// ============================================================
+
+app.get(
+  '/api/team/:teamNumber/awards/:year',
+  async (req, res) => {
+    const teamNumber =
+      Number(req.params.teamNumber)
+
+    const year =
+      Number(req.params.year)
+
+    try {
+      const data =
+        await ftcFetch(
+          `/${year}/awards/${teamNumber}`
+        )
+
+      res.json(
+        Array.isArray(data.awards)
+          ? data.awards
+          : []
+      )
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los premios de la temporada'
+      )
+    }
+  }
+)
+
+// ============================================================
+// ALIANZAS
+// ============================================================
+
+app.get(
+  '/api/event/:eventKey/alliances',
+  async (req, res) => {
+    const parsed =
+      parseEventKey(
+        req.params.eventKey
+      )
+
+    if (!parsed) {
+      return res.status(400).json({
+        error:
+          'Event key FTC inválido'
+      })
+    }
+
+    const {
+      season,
+      eventCode
+    } = parsed
+
+    try {
+      const data =
+        await ftcFetch(
+          `/${season}/alliances/${encodeURIComponent(
+            eventCode
+          )}`
+        )
+
+      res.json(
+        Array.isArray(data.alliances)
+          ? data.alliances
+          : []
+      )
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener las alianzas'
+      )
+    }
+  }
+)
+
+// ============================================================
+// SCORE DETAILS
+// ============================================================
+
+app.get(
+  '/api/event/:eventKey/scores/:level',
+  async (req, res) => {
+    const parsed =
+      parseEventKey(
+        req.params.eventKey
+      )
+
+    if (!parsed) {
+      return res.status(400).json({
+        error:
+          'Event key FTC inválido'
+      })
+    }
+
+    const level =
+      req.params.level
+
+    if (
+      level !== 'qual' &&
+      level !== 'playoff'
+    ) {
+      return res.status(400).json({
+        error:
+          'El nivel debe ser qual o playoff'
+      })
+    }
+
+    const {
+      season,
+      eventCode
+    } = parsed
+
+    try {
+      const data =
+        await ftcFetch(
+          `/${season}/scores/${encodeURIComponent(
+            eventCode
+          )}/${level}`
+        )
+
+      res.json(
+        Array.isArray(
+          data.matchScores
+        )
+          ? data.matchScores
+          : []
+      )
+    } catch (error) {
+      sendFtcError(
+        res,
+        error,
+        'No se pudieron obtener los detalles de puntuación'
+      )
+    }
+  }
+)
+
+// ============================================================
+// SINCRONIZACIÓN MULTIUSUARIO
+// ============================================================
+
+app.get(
+  '/api/sync',
+  requireSyncAuth,
+  async (req, res) => {
+    if (!pool) {
+      return res.status(503).json({
+        error:
+          'DATABASE_URL no está configurada'
+      })
+    }
+
+    try {
+      const [
+        scoutingResult,
+        pitResult,
+        favoritesResult
+      ] = await Promise.all([
+        pool.query(`
+          SELECT payload
+          FROM scouting_records
+          ORDER BY created_at DESC
+        `),
+
+        pool.query(`
+          SELECT payload
+          FROM pit_records
+          ORDER BY updated_at DESC
+        `),
+
+        pool.query(`
+          SELECT team_number
+          FROM favorite_teams
+          ORDER BY team_number
+        `)
+      ])
+
+      res.json({
+        scoutingRecords:
+          scoutingResult.rows.map(
+            (row) => row.payload
+          ),
+
+        pitRecords:
+          pitResult.rows.map(
+            (row) => row.payload
+          ),
+
+        favorites:
+          favoritesResult.rows.map(
+            (row) =>
+              Number(
+                row.team_number
+              )
+          ),
+
+        syncedAt:
+          new Date().toISOString()
+      })
+    } catch (error) {
+      console.error(
+        'Error leyendo sincronización:',
+        error
+      )
 
       res.status(500).json({
-        error: 'Error al obtener los datos del evento'
+        error:
+          'No se pudieron sincronizar los datos'
       })
     }
   }
 )
 
-// EVENTOS DE UNA TEMPORADA
-
-app.get('/api/events/:year', async (req, res) => {
-  const { year } = req.params
-
-  try {
-    const response = await fetch(
-      `https://www.thebluealliance.com/api/v3/events/${year}`,
-      {
-        headers: TBA_HEADERS
-      }
-    )
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: 'No se pudieron obtener los eventos'
-      })
-    }
-
-    const events = await response.json()
-
-    const formattedEvents = events
-      .map((event) => ({
-        key: event.key,
-        name: event.name,
-        city: event.city,
-        state: event.state_prov,
-        country: event.country,
-        startDate: event.start_date,
-        endDate: event.end_date,
-        eventType: event.event_type
-      }))
-      .sort((a, b) => {
-        if (!a.startDate) return 1
-        if (!b.startDate) return -1
-
-        return new Date(a.startDate) - new Date(b.startDate)
-      })
-
-    res.json(formattedEvents)
-  } catch (error) {
-    console.error(error)
-
-    res.status(500).json({
-      error: 'Error al conectar con The Blue Alliance'
-    })
-  }
-})
-
-// EQUIPOS DE UN EVENTO
-// TBA: Rank, Record, OPR, DPR y CCWM
-// Statbotics: EPA
-// Quantum: EPA Rank calculado dentro del evento
-
-app.get('/api/event/:eventKey/teams', async (req, res) => {
-  const { eventKey } = req.params
-
-  try {
-    const [
-      teamsResponse,
-      oprResponse,
-      rankingsResponse,
-      statboticsRows
-    ] = await Promise.all([
-      fetch(
-        `https://www.thebluealliance.com/api/v3/event/${eventKey}/teams`,
-        {
-          headers: TBA_HEADERS
-        }
-      ),
-
-      fetch(
-        `https://www.thebluealliance.com/api/v3/event/${eventKey}/oprs`,
-        {
-          headers: TBA_HEADERS
-        }
-      ),
-
-      fetch(
-        `https://www.thebluealliance.com/api/v3/event/${eventKey}/rankings`,
-        {
-          headers: TBA_HEADERS
-        }
-      ),
-
-      getStatboticsEventTeams(eventKey)
-    ])
-
-    if (!teamsResponse.ok) {
-      return res.status(teamsResponse.status).json({
-        error: 'No se pudieron obtener los equipos'
-      })
-    }
-
-    const teams = await teamsResponse.json()
-
-    let oprData = null
-    let rankingsData = null
-
-    if (oprResponse.ok) {
-      oprData = await oprResponse.json()
-    }
-
-    if (rankingsResponse.ok) {
-      rankingsData = await rankingsResponse.json()
-    }
-
-    const currentYearMatch = String(eventKey).match(/^(\d{4})/)
-    const currentYear = currentYearMatch
-      ? Number(currentYearMatch[1])
-      : new Date().getFullYear()
-
-    const formattedTeams = await Promise.all(
-      teams.map(async (team) => {
-        const teamKey = team.key
-
-        const ranking = rankingsData?.rankings?.find(
-          (item) => item.team_key === teamKey
-        )
-
-        const statbotics = statboticsRows.find(
-          (item) =>
-            Number(item.team) === Number(team.team_number)
-        )
-
-        const averageOpr =
-          await getPreviousSeasonAverageOpr(
-            team.team_number,
-            currentYear
-          )
-
-        return {
-          teamNumber: team.team_number,
-          name: team.nickname,
-          city: team.city,
-          state: team.state_prov,
-          country: team.country,
-
-          opr: oprData?.oprs?.[teamKey] ?? null,
-          dpr: oprData?.dprs?.[teamKey] ?? null,
-          ccwm: oprData?.ccwms?.[teamKey] ?? null,
-
-          epa: getStatboticsEpa(statbotics),
-
-          // Se calcula después para asegurar que
-          // EPA Rank corresponda a los equipos
-          // de este evento.
-          epaRank: null,
-
-          averageOpr,
-          averageOprYear: currentYear - 1,
-
-          rank: ranking?.rank ?? null,
-
-          record: {
-            wins: ranking?.record?.wins ?? 0,
-            losses: ranking?.record?.losses ?? 0,
-            ties: ranking?.record?.ties ?? 0
-          }
-        }
-      })
-    )
-
-    // EPA Rank:
-    // EPA más alto = #1 dentro del evento.
-    const teamsWithEpa = formattedTeams
-      .filter(
-        (team) =>
-          typeof team.epa === 'number' &&
-          Number.isFinite(team.epa)
-      )
-      .sort((a, b) => b.epa - a.epa)
-
-    teamsWithEpa.forEach((team, index) => {
-      team.epaRank = index + 1
-    })
-
-    formattedTeams.sort(
-      (a, b) => a.teamNumber - b.teamNumber
-    )
-
-    res.json(formattedTeams)
-  } catch (error) {
-    console.error(error)
-
-    res.status(500).json({
-      error: 'Error al obtener los equipos del evento'
-    })
-  }
-})
-
-
-// ========================================
-// SINCRONIZACIÓN MULTIUSUARIO
-// ========================================
-
-// DESCARGAR DATOS COMPARTIDOS
-
-app.get('/api/sync', requireSyncAuth, async (req, res) => {
-  if (!pool) {
-    return res.status(503).json({
-      error: 'DATABASE_URL no está configurada'
-    })
-  }
-
-  try {
-    const [
-      scoutingResult,
-      pitResult,
-      favoritesResult
-    ] = await Promise.all([
-      pool.query(
-        `SELECT payload
-         FROM scouting_records
-         ORDER BY created_at DESC`
-      ),
-
-      pool.query(
-        `SELECT payload
-         FROM pit_records
-         ORDER BY updated_at DESC`
-      ),
-
-      pool.query(
-        `SELECT team_number
-         FROM favorite_teams
-         ORDER BY team_number`
-      )
-    ])
-
-    res.json({
-      scoutingRecords:
-        scoutingResult.rows.map(
-          (row) => row.payload
-        ),
-
-      pitRecords:
-        pitResult.rows.map(
-          (row) => row.payload
-        ),
-
-      favorites:
-        favoritesResult.rows.map(
-          (row) => Number(row.team_number)
-        ),
-
-      syncedAt: new Date().toISOString()
-    })
-  } catch (error) {
-    console.error(
-      'Error leyendo sincronización:',
-      error
-    )
-
-    res.status(500).json({
-      error:
-        'No se pudieron sincronizar los datos'
-    })
-  }
-})
-
+// ============================================================
 // GUARDAR MATCH SCOUTING
+// ============================================================
 
 app.post(
   '/api/sync/scouting',
@@ -759,7 +1973,8 @@ app.post(
   async (req, res) => {
     if (!pool) {
       return res.status(503).json({
-        error: 'DATABASE_URL no está configurada'
+        error:
+          'DATABASE_URL no está configurada'
       })
     }
 
@@ -769,7 +1984,8 @@ app.post(
       }
 
       record.id = String(
-        record.id || crypto.randomUUID()
+        record.id ||
+          crypto.randomUUID()
       )
 
       record.updatedAt =
@@ -815,7 +2031,9 @@ app.post(
   }
 )
 
+// ============================================================
 // ELIMINAR MATCH SCOUTING
+// ============================================================
 
 app.delete(
   '/api/sync/scouting/:id',
@@ -823,7 +2041,8 @@ app.delete(
   async (req, res) => {
     if (!pool) {
       return res.status(503).json({
-        error: 'DATABASE_URL no está configurada'
+        error:
+          'DATABASE_URL no está configurada'
       })
     }
 
@@ -833,7 +2052,9 @@ app.delete(
           DELETE FROM scouting_records
           WHERE id = $1
         `,
-        [String(req.params.id)]
+        [
+          String(req.params.id)
+        ]
       )
 
       res.json({
@@ -853,7 +2074,9 @@ app.delete(
   }
 )
 
+// ============================================================
 // GUARDAR / ACTUALIZAR PIT SCOUTING
+// ============================================================
 
 app.put(
   '/api/sync/pit',
@@ -861,7 +2084,8 @@ app.put(
   async (req, res) => {
     if (!pool) {
       return res.status(503).json({
-        error: 'DATABASE_URL no está configurada'
+        error:
+          'DATABASE_URL no está configurada'
       })
     }
 
@@ -881,7 +2105,8 @@ app.put(
       }
 
       record.id = String(
-        record.id || crypto.randomUUID()
+        record.id ||
+          crypto.randomUUID()
       )
 
       record.updatedAt =
@@ -915,7 +2140,9 @@ app.put(
         [
           record.id,
           record.eventKey,
-          Number(record.teamNumber),
+          Number(
+            record.teamNumber
+          ),
           JSON.stringify(record)
         ]
       )
@@ -938,7 +2165,9 @@ app.put(
   }
 )
 
+// ============================================================
 // ELIMINAR PIT SCOUTING
+// ============================================================
 
 app.delete(
   '/api/sync/pit/:id',
@@ -946,7 +2175,8 @@ app.delete(
   async (req, res) => {
     if (!pool) {
       return res.status(503).json({
-        error: 'DATABASE_URL no está configurada'
+        error:
+          'DATABASE_URL no está configurada'
       })
     }
 
@@ -956,7 +2186,9 @@ app.delete(
           DELETE FROM pit_records
           WHERE id = $1
         `,
-        [String(req.params.id)]
+        [
+          String(req.params.id)
+        ]
       )
 
       res.json({
@@ -976,7 +2208,9 @@ app.delete(
   }
 )
 
-// SINCRONIZAR FAVORITOS
+// ============================================================
+// FAVORITOS
+// ============================================================
 
 app.put(
   '/api/sync/favorites',
@@ -984,7 +2218,8 @@ app.put(
   async (req, res) => {
     if (!pool) {
       return res.status(503).json({
-        error: 'DATABASE_URL no está configurada'
+        error:
+          'DATABASE_URL no está configurada'
       })
     }
 
@@ -993,24 +2228,31 @@ app.put(
 
     try {
       const favorites =
-        Array.isArray(req.body?.favorites)
+        Array.isArray(
+          req.body?.favorites
+        )
           ? [
               ...new Set(
                 req.body.favorites
                   .map(Number)
-                  .filter(Number.isFinite)
+                  .filter(
+                    Number.isFinite
+                  )
               )
             ]
           : []
 
-      await client.query('BEGIN')
+      await client.query(
+        'BEGIN'
+      )
 
       await client.query(
         'DELETE FROM favorite_teams'
       )
 
       for (
-        const teamNumber of favorites
+        const teamNumber
+        of favorites
       ) {
         await client.query(
           `
@@ -1024,7 +2266,9 @@ app.put(
         )
       }
 
-      await client.query('COMMIT')
+      await client.query(
+        'COMMIT'
+      )
 
       res.json({
         ok: true,
@@ -1050,631 +2294,127 @@ app.put(
   }
 )
 
-// MATCHES DE UN EVENTO
-
-app.get(
-  '/api/event/:eventKey/matches',
-  async (req, res) => {
-    const { eventKey } = req.params
-
-    try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!response.ok) {
-        return res
-          .status(response.status)
-          .json({
-            error:
-              'No se pudieron obtener los matches'
-          })
-      }
-
-      const matches =
-        await response.json()
-
-      const formattedMatches = matches
-        .map((match) => ({
-          key: match.key,
-          compLevel:
-            match.comp_level,
-          setNumber:
-            match.set_number,
-          matchNumber:
-            match.match_number,
-          predictedTime:
-            match.predicted_time,
-          actualTime:
-            match.actual_time,
-          winningAlliance:
-            match.winning_alliance,
-
-          red: {
-            teams:
-              match.alliances?.red
-                ?.team_keys?.map(
-                  (teamKey) =>
-                    Number(
-                      teamKey.replace(
-                        'frc',
-                        ''
-                      )
-                    )
-                ) || [],
-
-            score:
-              match.alliances?.red
-                ?.score ?? null
-          },
-
-          blue: {
-            teams:
-              match.alliances?.blue
-                ?.team_keys?.map(
-                  (teamKey) =>
-                    Number(
-                      teamKey.replace(
-                        'frc',
-                        ''
-                      )
-                    )
-                ) || [],
-
-            score:
-              match.alliances?.blue
-                ?.score ?? null
-          }
-        }))
-        .sort((a, b) => {
-          const order = {
-            qm: 1,
-            ef: 2,
-            qf: 3,
-            sf: 4,
-            f: 5
-          }
-
-          const levelDifference =
-            (order[a.compLevel] || 99) -
-            (order[b.compLevel] || 99)
-
-          if (levelDifference !== 0) {
-            return levelDifference
-          }
-
-          if (
-            a.setNumber !==
-            b.setNumber
-          ) {
-            return (
-              a.setNumber -
-              b.setNumber
-            )
-          }
-
-          return (
-            a.matchNumber -
-            b.matchNumber
-          )
-        })
-
-      res.json(formattedMatches)
-    } catch (error) {
-      console.error(error)
-
-      res.status(500).json({
-        error:
-          'Error al obtener los matches del evento'
-      })
-    }
-  }
-)
-
-// EVENTOS DE UN EQUIPO EN UNA TEMPORADA
-
-app.get(
-  '/api/team/:teamNumber/events/:year',
-  async (req, res) => {
-    const { teamNumber, year } = req.params
-
-    try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/team/frc${teamNumber}/events/${year}`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!response.ok) {
-        return res.status(response.status).json({
-          error:
-            'No se pudieron obtener los eventos del equipo'
-        })
-      }
-
-      const events = await response.json()
-
-      const formattedEvents = events
-        .map((event) => ({
-          key: event.key,
-          name: event.name,
-          year: event.year,
-          city: event.city,
-          state: event.state_prov,
-          country: event.country,
-          startDate: event.start_date,
-          endDate: event.end_date,
-          eventType: event.event_type
-        }))
-        .sort((a, b) => {
-          if (!a.startDate) return 1
-          if (!b.startDate) return -1
-
-          return (
-            new Date(a.startDate) -
-            new Date(b.startDate)
-          )
-        })
-
-      res.json(formattedEvents)
-    } catch (error) {
-      console.error(error)
-
-      res.status(500).json({
-        error:
-          'Error al obtener los eventos del equipo'
-      })
-    }
-  }
-)
-
-// MATCHES DE UN EQUIPO EN UN EVENTO
-
-app.get(
-  '/api/team/:teamNumber/event/:eventKey/matches',
-  async (req, res) => {
-    const {
-      teamNumber,
-      eventKey
-    } = req.params
-
-    try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/team/frc${teamNumber}/event/${eventKey}/matches`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!response.ok) {
-        return res.status(response.status).json({
-          error:
-            'No se pudieron obtener los matches del equipo'
-        })
-      }
-
-      const matches = await response.json()
-
-      const formattedMatches = matches
-        .map((match) => ({
-          key: match.key,
-          compLevel: match.comp_level,
-          setNumber: match.set_number,
-          matchNumber: match.match_number,
-          predictedTime: match.predicted_time,
-          actualTime: match.actual_time,
-          winningAlliance:
-            match.winning_alliance,
-
-          red: {
-            teams:
-              match.alliances?.red?.team_keys?.map(
-                (teamKey) =>
-                  Number(
-                    teamKey.replace('frc', '')
-                  )
-              ) || [],
-
-            score:
-              match.alliances?.red?.score ??
-              null
-          },
-
-          blue: {
-            teams:
-              match.alliances?.blue?.team_keys?.map(
-                (teamKey) =>
-                  Number(
-                    teamKey.replace('frc', '')
-                  )
-              ) || [],
-
-            score:
-              match.alliances?.blue?.score ??
-              null
-          }
-        }))
-        .sort((a, b) => {
-          const order = {
-            qm: 1,
-            ef: 2,
-            qf: 3,
-            sf: 4,
-            f: 5
-          }
-
-          const levelDifference =
-            (order[a.compLevel] || 99) -
-            (order[b.compLevel] || 99)
-
-          if (levelDifference !== 0) {
-            return levelDifference
-          }
-
-          if (
-            a.setNumber !==
-            b.setNumber
-          ) {
-            return (
-              a.setNumber -
-              b.setNumber
-            )
-          }
-
-          return (
-            a.matchNumber -
-            b.matchNumber
-          )
-        })
-
-      res.json(formattedMatches)
-    } catch (error) {
-      console.error(error)
-
-      res.status(500).json({
-        error:
-          'Error al obtener los matches del equipo'
-      })
-    }
-  }
-)
-
-// PREMIOS DE UN EQUIPO EN UN EVENTO
-
-app.get(
-  '/api/team/:teamNumber/event/:eventKey/awards',
-  async (req, res) => {
-    const {
-      teamNumber,
-      eventKey
-    } = req.params
-
-    try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/team/frc${teamNumber}/event/${eventKey}/awards`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!response.ok) {
-        return res.status(response.status).json({
-          error:
-            'No se pudieron obtener los premios'
-        })
-      }
-
-      const awards = await response.json()
-
-      const formattedAwards = awards.map(
-        (award) => ({
-          name: award.name,
-          awardType: award.award_type,
-          eventKey: award.event_key,
-          recipients:
-            award.recipient_list?.map(
-              (recipient) => ({
-                teamNumber:
-                  recipient.team_key
-                    ? Number(
-                        recipient.team_key.replace(
-                          'frc',
-                          ''
-                        )
-                      )
-                    : null,
-
-                awardee:
-                  recipient.awardee || null
-              })
-            ) || []
-        })
-      )
-
-      res.json(formattedAwards)
-    } catch (error) {
-      console.error(error)
-
-      res.status(500).json({
-        error:
-          'Error al obtener los premios'
-      })
-    }
-  }
-)
-
-// PREMIOS DE UN EQUIPO EN UNA TEMPORADA
-
-app.get(
-  '/api/team/:teamNumber/awards/:year',
-  async (req, res) => {
-    const { teamNumber, year } = req.params
-
-    try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/team/frc${teamNumber}/awards/${year}`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!response.ok) {
-        return res.status(response.status).json({
-          error:
-            'No se pudieron obtener los premios de la temporada'
-        })
-      }
-
-      const awards = await response.json()
-
-      const formattedAwards = awards.map(
-        (award) => ({
-          name: award.name,
-          awardType: award.award_type,
-          eventKey: award.event_key,
-
-          recipients:
-            award.recipient_list?.map(
-              (recipient) => ({
-                teamNumber:
-                  recipient.team_key
-                    ? Number(
-                        recipient.team_key.replace(
-                          'frc',
-                          ''
-                        )
-                      )
-                    : null,
-
-                awardee:
-                  recipient.awardee || null
-              })
-            ) || []
-        })
-      )
-
-      res.json(formattedAwards)
-    } catch (error) {
-      console.error(error)
-
-      res.status(500).json({
-        error:
-          'Error al obtener los premios de la temporada'
-      })
-    }
-  }
-)
-
-// RANKING COMPLETO DEL EVENTO
-
-app.get(
-  '/api/event/:eventKey/rankings',
-  async (req, res) => {
-    const { eventKey } = req.params
-
-    try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/event/${eventKey}/rankings`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!response.ok) {
-        return res.status(response.status).json({
-          error:
-            'No se pudo obtener el ranking del evento'
-        })
-      }
-
-      const data = await response.json()
-
-      const rankings =
-        data?.rankings?.map(
-          (ranking) => ({
-            rank: ranking.rank,
-
-            teamNumber: Number(
-              ranking.team_key.replace(
-                'frc',
-                ''
-              )
-            ),
-
-            record: {
-              wins:
-                ranking.record?.wins ?? 0,
-
-              losses:
-                ranking.record?.losses ?? 0,
-
-              ties:
-                ranking.record?.ties ?? 0
-            },
-
-            dq:
-              ranking.dq ?? 0,
-
-            matchesPlayed:
-              ranking.matches_played ?? 0,
-
-            sortOrders:
-              ranking.sort_orders || []
-          })
-        ) || []
-
-      res.json(rankings)
-    } catch (error) {
-      console.error(error)
-
-      res.status(500).json({
-        error:
-          'Error al obtener el ranking del evento'
-      })
-    }
-  }
-)
-
-// INFORMACIÓN GENERAL DEL EVENTO
-
-app.get(
-  '/api/event/:eventKey',
-  async (req, res) => {
-    const { eventKey } = req.params
-
-    try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/event/${eventKey}`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!response.ok) {
-        return res.status(response.status).json({
-          error: 'Evento no encontrado'
-        })
-      }
-
-      const event = await response.json()
-
-      res.json({
-        key: event.key,
-        name: event.name,
-        year: event.year,
-        city: event.city,
-        state: event.state_prov,
-        country: event.country,
-        startDate: event.start_date,
-        endDate: event.end_date,
-        eventType: event.event_type,
-        website: event.website
-      })
-    } catch (error) {
-      console.error(error)
-
-      res.status(500).json({
-        error:
-          'Error al obtener la información del evento'
-      })
-    }
-  }
-)
-
-// OPR / DPR / CCWM DEL EVENTO
-
-app.get(
-  '/api/event/:eventKey/oprs',
-  async (req, res) => {
-    const { eventKey } = req.params
-
-    try {
-      const response = await fetch(
-        `https://www.thebluealliance.com/api/v3/event/${eventKey}/oprs`,
-        {
-          headers: TBA_HEADERS
-        }
-      )
-
-      if (!response.ok) {
-        return res.status(response.status).json({
-          error:
-            'No se pudieron obtener OPR, DPR y CCWM'
-        })
-      }
-
-      const data = await response.json()
-
-      res.json({
-        oprs: data?.oprs || {},
-        dprs: data?.dprs || {},
-        ccwms: data?.ccwms || {}
-      })
-    } catch (error) {
-      console.error(error)
-
-      res.status(500).json({
-        error:
-          'Error al obtener OPR, DPR y CCWM'
-      })
-    }
-  }
-)
-
+// ============================================================
 // HEALTH CHECK
-// Sirve para comprobar rápidamente que el backend
-// está encendido y si PostgreSQL está configurado.
+// ============================================================
 
-app.get('/api/health', async (req, res) => {
-  let database = false
+app.get(
+  '/api/health',
+  async (req, res) => {
+    let database = false
+    let firstApi = false
+    let currentSeason = null
 
-  if (pool) {
-    try {
-      await pool.query('SELECT 1')
-      database = true
-    } catch (error) {
-      console.error(
-        'Health check PostgreSQL:',
-        error
+    if (pool) {
+      try {
+        await pool.query(
+          'SELECT 1'
+        )
+
+        database = true
+      } catch (error) {
+        console.error(
+          'Health check PostgreSQL:',
+          error
+        )
+      }
+    }
+
+    if (
+      ftcCredentialsConfigured()
+    ) {
+      try {
+        const data =
+          await ftcFetch('')
+
+        firstApi = true
+
+        currentSeason =
+          data.currentSeason ??
+          data.maxSeason ??
+          null
+      } catch (error) {
+        console.error(
+          'Health check FIRST FTC API:',
+          error.message
+        )
+      }
+    }
+
+    res.json({
+      ok: true,
+
+      api: true,
+
+      firstApi,
+
+      ftcCredentialsConfigured:
+        ftcCredentialsConfigured(),
+
+      currentSeason,
+
+      database,
+
+      multiuserSync:
+        database,
+
+      source:
+        'FIRST FTC Events API',
+
+      time:
+        new Date().toISOString()
+    })
+  }
+)
+
+// ============================================================
+// 404
+// ============================================================
+
+app.use(
+  '/api',
+  (req, res) => {
+    res.status(404).json({
+      error:
+        'Ruta de API no encontrada'
+    })
+  }
+)
+
+// ============================================================
+// INICIAR SERVIDOR
+// ============================================================
+
+app.listen(
+  PORT,
+  () => {
+    console.log(
+      `Quantum FTC Scouting API corriendo en http://localhost:${PORT}`
+    )
+
+    if (
+      ftcCredentialsConfigured()
+    ) {
+      console.log(
+        'FIRST FTC Events API: credenciales configuradas'
+      )
+    } else {
+      console.log(
+        'FIRST FTC Events API: faltan FTC_API_USERNAME / FTC_API_TOKEN'
+      )
+    }
+
+    if (pool) {
+      console.log(
+        'Sincronización multiusuario: PostgreSQL configurado'
+      )
+    } else {
+      console.log(
+        'Sincronización multiusuario: modo local (falta DATABASE_URL)'
       )
     }
   }
+)
 
-  res.json({
-    ok: true,
-    api: true,
-    database,
-    multiuserSync: database,
-    time: new Date().toISOString()
-  })
-})
-
-// 404 PARA RUTAS DE API NO EXISTENTES
-
-app.use('/api', (req, res) => {
-  res.status(404).json({
-    error: 'Ruta de API no encontrada'
-  })
-})
-
-// INICIAR SERVIDOR
-
-app.listen(PORT, () => {
-  console.log(
-    `Quantum Scouting API corriendo en http://localhost:${PORT}`
-  )
-
-  if (pool) {
-    console.log(
-      'Sincronización multiusuario: PostgreSQL configurado'
-    )
-  } else {
-    console.log(
-      'Sincronización multiusuario: modo local (falta DATABASE_URL)'
-    )
-  }
-})
+// cd server
+// node index.js
