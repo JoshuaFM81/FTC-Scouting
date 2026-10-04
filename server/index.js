@@ -418,6 +418,7 @@ function getMatchTeams(match) {
     })
   }
 
+  // FTC usa dos equipos por alianza en el match.
   const directRed = [
     match.red1,
     match.red2,
@@ -466,6 +467,8 @@ function normalizeMatch(
     .trim()
     .toLowerCase()
 
+  // FIRST puede devolver "QUALIFICATION".
+  // Lo convertimos al formato interno "qual".
   const level =
     rawLevel === 'qual' ||
     rawLevel === 'qualification' ||
@@ -477,8 +480,8 @@ function normalizeMatch(
           rawLevel === 'elimination'
         ? 'playoff'
         : String(defaultLevel || 'qual')
-            .trim()
-            .toLowerCase() === 'playoff'
+              .trim()
+              .toLowerCase() === 'playoff'
           ? 'playoff'
           : 'qual'
 
@@ -641,6 +644,10 @@ const pool = process.env.DATABASE_URL
     })
   : null
 
+// ============================================================
+// AUTENTICACIÓN
+// ============================================================
+
 const authToken = () =>
   crypto
     .createHash('sha256')
@@ -671,6 +678,10 @@ const requireSyncAuth = (
 
   next()
 }
+
+// ============================================================
+// BASE DE DATOS
+// ============================================================
 
 async function initializeDatabase() {
   if (!pool) {
@@ -716,6 +727,11 @@ initializeDatabase().catch((error) =>
     error
   )
 )
+
+// ============================================================
+// FIN PARTE 1/3
+// PEGA LA PARTE 2 JUSTO DEBAJO
+// ============================================================
 
 // ============================================================
 // ROOT
@@ -781,6 +797,12 @@ app.get(
   async (req, res) => {
     const year = Number(req.params.year)
 
+    if (!Number.isInteger(year)) {
+      return res.status(400).json({
+        error: 'Temporada inválida'
+      })
+    }
+
     try {
       const data =
         await ftcFetch(`/${year}`)
@@ -821,6 +843,12 @@ app.get(
   '/api/events/:year',
   async (req, res) => {
     const year = Number(req.params.year)
+
+    if (!Number.isInteger(year)) {
+      return res.status(400).json({
+        error: 'Temporada inválida'
+      })
+    }
 
     try {
       const data =
@@ -873,9 +901,10 @@ app.get(
 app.get(
   '/api/event/:eventKey',
   async (req, res) => {
-    const parsed = parseEventKey(
-      req.params.eventKey
-    )
+    const parsed =
+      parseEventKey(
+        req.params.eventKey
+      )
 
     if (!parsed) {
       return res.status(400).json({
@@ -920,44 +949,6 @@ app.get(
 )
 
 // ============================================================
-// DEBUG DE EVENTOS
-// ============================================================
-
-app.get(
-  '/api/debug/events/:year',
-  async (req, res) => {
-    const year = Number(req.params.year)
-
-    try {
-      const data =
-        await ftcFetch(
-          `/${year}/events`
-        )
-
-      const events =
-        Array.isArray(data.events)
-          ? data.events
-          : []
-
-      const mexicoEvents =
-        events.filter((event) =>
-          JSON.stringify(event)
-            .toLowerCase()
-            .includes('mexico')
-        )
-
-      res.json(mexicoEvents)
-    } catch (error) {
-      sendFtcError(
-        res,
-        error,
-        'No se pudieron obtener los eventos originales'
-      )
-    }
-  }
-)
-
-// ============================================================
 // INFORMACIÓN GENERAL DE UN EQUIPO
 // ============================================================
 
@@ -970,8 +961,15 @@ app.get(
     const requestedYear =
       Number(req.query.year)
 
-    let season =       Number.isInteger(requestedYear) &&
-      requestedYear >= 2019
+    if (!Number.isInteger(teamNumber)) {
+      return res.status(400).json({
+        error: 'Número de equipo inválido'
+      })
+    }
+
+    let season =
+      Number.isInteger(requestedYear) &&
+      requestedYear >= 2005
         ? requestedYear
         : null
 
@@ -1031,6 +1029,16 @@ app.get(
 
     const year =
       Number(req.params.year)
+
+    if (
+      !Number.isInteger(teamNumber) ||
+      !Number.isInteger(year)
+    ) {
+      return res.status(400).json({
+        error:
+          'Equipo o temporada inválidos'
+      })
+    }
 
     try {
       const data =
@@ -1207,6 +1215,9 @@ app.get(
                 ranking?.matchesPlayed ??
                 0,
 
+              dq:
+                ranking?.dq ?? 0,
+
               rankingPoints:
                 ranking?.rankingPoints ??
                 null,
@@ -1215,13 +1226,37 @@ app.get(
                 ranking?.qualifyingPoints ??
                 null,
 
+              sortOrder1:
+                ranking?.sortOrder1 ??
+                null,
+
+              sortOrder2:
+                ranking?.sortOrder2 ??
+                null,
+
+              sortOrder3:
+                ranking?.sortOrder3 ??
+                null,
+
+              sortOrder4:
+                ranking?.sortOrder4 ??
+                null,
+
+              sortOrder5:
+                ranking?.sortOrder5 ??
+                null,
+
+              sortOrder6:
+                ranking?.sortOrder6 ??
+                null,
+
+              // Estas métricas no vienen
+              // directamente del ranking de FIRST.
+              // El frontend puede calcularlas
+              // usando los resultados de matches.
               opr: null,
               dpr: null,
-              ccwm: null,
-              epa: null,
-              epaRank: null,
-              averageOpr: null,
-              averageOprYear: null
+              ccwm: null
             }
           })
           .sort(
@@ -1308,6 +1343,12 @@ app.get(
         req.params.eventKey
       )
 
+    if (!Number.isInteger(teamNumber)) {
+      return res.status(400).json({
+        error: 'Número de equipo inválido'
+      })
+    }
+
     if (!parsed) {
       return res.status(400).json({
         error:
@@ -1387,12 +1428,39 @@ app.get(
             ranking?.matchesPlayed ??
             0,
 
+          dq:
+            ranking?.dq ?? 0,
+
           rankingPoints:
             ranking?.rankingPoints ??
             null,
 
           qualifyingPoints:
             ranking?.qualifyingPoints ??
+            null,
+
+          sortOrder1:
+            ranking?.sortOrder1 ??
+            null,
+
+          sortOrder2:
+            ranking?.sortOrder2 ??
+            null,
+
+          sortOrder3:
+            ranking?.sortOrder3 ??
+            null,
+
+          sortOrder4:
+            ranking?.sortOrder4 ??
+            null,
+
+          sortOrder5:
+            ranking?.sortOrder5 ??
+            null,
+
+          sortOrder6:
+            ranking?.sortOrder6 ??
             null,
 
           opr: null,
@@ -1409,6 +1477,11 @@ app.get(
     }
   }
 )
+
+// ============================================================
+// FIN PARTE 2/3
+// PEGA LA PARTE 3 JUSTO DEBAJO
+// ============================================================
 
 // ============================================================
 // MATCHES / HYBRID SCHEDULE
@@ -1430,6 +1503,86 @@ async function getHybridSchedule(
     ? data.schedule
     : []
 }
+
+async function getEventMatches(
+  eventKey,
+  season,
+  eventCode
+) {
+  const [
+    qualificationMatches,
+    playoffMatches
+  ] = await Promise.all([
+    getHybridSchedule(
+      season,
+      eventCode,
+      'qual'
+    ).catch(() => []),
+
+    getHybridSchedule(
+      season,
+      eventCode,
+      'playoff'
+    ).catch(() => [])
+  ])
+
+  const matches = [
+    ...qualificationMatches.map(
+      (match) =>
+        normalizeMatch(
+          match,
+          eventKey,
+          'qual'
+        )
+    ),
+
+    ...playoffMatches.map(
+      (match) =>
+        normalizeMatch(
+          match,
+          eventKey,
+          'playoff'
+        )
+    )
+  ]
+
+  matches.sort((a, b) => {
+    const levelA =
+      a.tournamentLevel === 'qual'
+        ? 1
+        : 2
+
+    const levelB =
+      b.tournamentLevel === 'qual'
+        ? 1
+        : 2
+
+    if (levelA !== levelB) {
+      return levelA - levelB
+    }
+
+    if (
+      a.setNumber !==
+      b.setNumber
+    ) {
+      return (
+        a.setNumber -
+        b.setNumber
+      )
+    }
+
+    return (
+      a.matchNumber -
+      b.matchNumber
+    )
+  })
+
+  return matches
+}
+
+// ============================================================
+// MATCHES DE UN EVENTO
+// ============================================================
 
 app.get(
   '/api/event/:eventKey/matches',
@@ -1453,77 +1606,14 @@ app.get(
     } = parsed
 
     try {
-      const [
-        qualificationMatches,
-        playoffMatches
-      ] = await Promise.all([
-        getHybridSchedule(
-  season,
-  eventCode,
-  'qual'
-).catch(() => []),
-
-getHybridSchedule(
-  season,
-  eventCode,
-  'playoff'
-).catch(() => [])
-      ])
-
-      const formatted = [
-        ...qualificationMatches.map(
-          (match) =>
-            normalizeMatch(
-              match,
-              eventKey,
-              'qual'
-            )
-        ),
-
-        ...playoffMatches.map(
-          (match) =>
-            normalizeMatch(
-              match,
-              eventKey,
-              'playoff'
-            )
+      const matches =
+        await getEventMatches(
+          eventKey,
+          season,
+          eventCode
         )
-      ]
 
-      formatted.sort((a, b) => {
-        const levelA =
-          a.tournamentLevel ===
-          'qual'
-            ? 1
-            : 2
-
-        const levelB =
-          b.tournamentLevel ===
-          'qual'
-            ? 1
-            : 2
-
-        if (levelA !== levelB) {
-          return levelA - levelB
-        }
-
-        if (
-          a.setNumber !==
-          b.setNumber
-        ) {
-          return (
-            a.setNumber -
-            b.setNumber
-          )
-        }
-
-        return (
-          a.matchNumber -
-          b.matchNumber
-        )
-      })
-
-      res.json(formatted)
+      res.json(matches)
     } catch (error) {
       sendFtcError(
         res,
@@ -1550,6 +1640,13 @@ app.get(
     const parsed =
       parseEventKey(eventKey)
 
+    if (!Number.isInteger(teamNumber)) {
+      return res.status(400).json({
+        error:
+          'Número de equipo inválido'
+      })
+    }
+
     if (!parsed) {
       return res.status(400).json({
         error:
@@ -1563,80 +1660,22 @@ app.get(
     } = parsed
 
     try {
-      const [
-        qualificationMatches,
-        playoffMatches
-      ] = await Promise.all([
-        getHybridSchedule(
+      const matches =
+        await getEventMatches(
+          eventKey,
           season,
-          eventCode,
-          'qual'
-        ).catch(() => []),
-
-        getHybridSchedule(
-          season,
-          eventCode,
-          'playoff'
-        ).catch(() => [])
-      ])
-
-      const matches = [
-        ...qualificationMatches.map(
-          (match) =>
-            normalizeMatch(
-              match,
-              eventKey,
-              'qual'
-            )
-        ),
-
-        ...playoffMatches.map(
-          (match) =>
-            normalizeMatch(
-              match,
-              eventKey,
-              'playoff'
-            )
+          eventCode
         )
-      ]
-        .filter((match) =>
+
+      const teamMatches =
+        matches.filter((match) =>
           [
             ...match.red.teams,
             ...match.blue.teams
           ].includes(teamNumber)
         )
-        .sort((a, b) => {
-          const levelA =
-            a.tournamentLevel === 'qual'
-              ? 1
-              : 2
 
-          const levelB =
-            b.tournamentLevel === 'qual'
-              ? 1
-              : 2
-
-          if (levelA !== levelB) {
-            return levelA - levelB
-          }
-
-          if (
-            a.setNumber !==
-            b.setNumber
-          ) {
-            return (
-              a.setNumber -
-              b.setNumber
-            )
-          }
-
-          return (
-            a.matchNumber -
-            b.matchNumber
-          )
-        })
-
-      res.json(matches)
+      res.json(teamMatches)
     } catch (error) {
       sendFtcError(
         res,
@@ -1709,6 +1748,13 @@ app.get(
         req.params.eventKey
       )
 
+    if (!Number.isInteger(teamNumber)) {
+      return res.status(400).json({
+        error:
+          'Número de equipo inválido'
+      })
+    }
+
     if (!parsed) {
       return res.status(400).json({
         error:
@@ -1745,41 +1791,7 @@ app.get(
 )
 
 // ============================================================
-// PREMIOS DE UN EQUIPO EN UNA TEMPORADA
-// ============================================================
-
-app.get(
-  '/api/team/:teamNumber/awards/:year',
-  async (req, res) => {
-    const teamNumber =
-      Number(req.params.teamNumber)
-
-    const year =
-      Number(req.params.year)
-
-    try {
-      const data =
-        await ftcFetch(
-          `/${year}/awards/${teamNumber}`
-        )
-
-      res.json(
-        Array.isArray(data.awards)
-          ? data.awards
-          : []
-      )
-    } catch (error) {
-      sendFtcError(
-        res,
-        error,
-        'No se pudieron obtener los premios de la temporada'
-      )
-    }
-  }
-)
-
-// ============================================================
-// ALIANZAS
+// ALIANZAS OFICIALES
 // ============================================================
 
 app.get(
@@ -1845,7 +1857,9 @@ app.get(
     }
 
     const level =
-      req.params.level
+      String(req.params.level)
+        .trim()
+        .toLowerCase()
 
     if (
       level !== 'qual' &&
@@ -2415,6 +2429,3 @@ app.listen(
     }
   }
 )
-
-// cd server
-// node index.js

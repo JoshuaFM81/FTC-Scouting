@@ -1,16 +1,90 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
-const FIRST_FRC_YEAR = 1992
+const FIRST_FTC_YEAR = 2005
+// FTC identifica cada temporada por el año en que inicia.
+// Ejemplo: la temporada 2025-2026 se consulta como 2025 en la FIRST API.
 const CURRENT_YEAR = new Date().getFullYear()
-const LATEST_FRC_YEAR = CURRENT_YEAR + 1
+const CURRENT_FTC_SEASON = new Date().getMonth() >= 6 ? CURRENT_YEAR : CURRENT_YEAR - 1
+const LATEST_FTC_YEAR = CURRENT_FTC_SEASON
+
+const formatSeasonYears = (seasonYear) => {
+  const startYear = Number(seasonYear)
+  return `${startYear} - ${startYear + 1}`
+}
+
+// FIRST es la fuente principal. Esta lista solo se usa como respaldo
+// cuando la API no devuelve gameName para temporadas históricas.
+const FTC_GAME_NAME_FALLBACKS = {
+  2025: 'DECODE',
+  2024: 'INTO THE DEEP',
+  2023: 'CENTERSTAGE',
+  2022: 'POWERPLAY',
+  2021: 'FREIGHT FRENZY',
+  2020: 'ULTIMATE GOAL',
+  2019: 'SKYSTONE',
+  2018: 'ROVER RUCKUS',
+  2017: 'RELIC RECOVERY',
+  2016: 'VELOCITY VORTEX',
+  2015: 'FIRST RES-Q',
+  2014: 'CASCADE EFFECT',
+  2013: 'BLOCK PARTY!',
+  2012: 'RING IT UP!',
+  2011: 'BOWLED OVER!',
+  2010: 'GET OVER IT!',
+  2009: 'HOT SHOT!',
+  2008: 'FACE OFF!',
+  2007: 'QUAD QUANDARY',
+  2006: 'HANGIN-A-ROUND',
+  2005: 'HALF-PIPE HUSTLE'
+}
 
 const SCOUTING_STORAGE_KEY = 'quantum-scouting-records'
 const PIT_STORAGE_KEY = 'quantum-pit-scouting-records'
 const FAVORITES_STORAGE_KEY = 'quantum-favorite-teams'
 const AUTH_STORAGE_KEY = 'quantum-scouting-authenticated'
 const AUTH_TOKEN_STORAGE_KEY = 'quantum-scouting-auth-token'
-const API_BASE_URL = 'https://quantum-scouting-api.onrender.com'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+
+const QUANTUM_FTC_TEAMS = [
+  {
+    number: 24831,
+    primary: '#F05AA6',
+    secondary: '#7B3FA1'
+  },
+  {
+    number: 28076,
+    primary: '#45B649',
+    secondary: '#7B3FA1'
+  }
+]
+
+const getQuantumTeam = (teamNumber) =>
+  QUANTUM_FTC_TEAMS.find(
+    (team) => Number(team.number) === Number(teamNumber)
+  ) || null
+
+const quantumTeamStyle = (teamNumber, strong = false) => {
+  const team = getQuantumTeam(teamNumber)
+  if (!team) return undefined
+
+  const alpha = strong ? '30' : '18'
+  return {
+    background: `linear-gradient(90deg, ${team.primary}${alpha}, transparent 72%)`,
+    boxShadow: `inset 4px 0 0 ${team.primary}`
+  }
+}
+
+const quantumTeamTextStyle = (teamNumber) => {
+  const team = getQuantumTeam(teamNumber)
+  return team ? { color: team.primary, fontWeight: 800 } : undefined
+}
+
+const quantumTeamLabel = (item) => {
+  const team = getQuantumTeam(item.teamNumber)
+  const marker = team ? '★ ' : ''
+  return `${marker}${item.teamNumber} — ${item.name || 'Equipo FTC'}`
+}
 
 const readLocal = (key, fallback) => {
   try {
@@ -38,16 +112,17 @@ function App() {
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
 
-  const [year, setYear] = useState(String(CURRENT_YEAR))
+  const [year, setYear] = useState(String(CURRENT_FTC_SEASON))
+  const [seasonNames, setSeasonNames] = useState({})
   const [view, setView] = useState('home')
   const [viewHistory, setViewHistory] = useState([])
 
   const seasons = Array.from(
-    { length: LATEST_FRC_YEAR - FIRST_FRC_YEAR + 1 },
-    (_, index) => LATEST_FRC_YEAR - index
+    { length: LATEST_FTC_YEAR - FIRST_FTC_YEAR + 1 },
+    (_, index) => LATEST_FTC_YEAR - index
   )
 
-  const [teamInput, setTeamInput] = useState('8740')
+  const [teamInput, setTeamInput] = useState('24831')
   const [team, setTeam] = useState(null)
   const [teamEvents, setTeamEvents] = useState([])
   const [teamMatchHistory, setTeamMatchHistory] = useState([])
@@ -78,8 +153,8 @@ function App() {
 
   const [allianceEventKey, setAllianceEventKey] = useState('')
   const [allianceTeams, setAllianceTeams] = useState([])
-  const [redAlliance, setRedAlliance] = useState(['', '', ''])
-  const [blueAlliance, setBlueAlliance] = useState(['', '', ''])
+  const [redAlliance, setRedAlliance] = useState(['', ''])
+  const [blueAlliance, setBlueAlliance] = useState(['', ''])
 
   const [pickEventKey, setPickEventKey] = useState('')
   const [pickTeams, setPickTeams] = useState([])
@@ -175,6 +250,45 @@ function App() {
     return () => window.clearInterval(timer)
   }, [isAuthenticated])
 
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    let cancelled = false
+
+    const loadSeasonNames = async () => {
+      const entries = await Promise.all(
+        seasons.map(async (seasonYear) => {
+          try {
+            const response = await fetch(`${API_BASE_URL}/api/season/${seasonYear}`)
+            if (!response.ok) return [seasonYear, '']
+            const data = await response.json()
+            return [seasonYear, String(data?.gameName || '').trim()]
+          } catch {
+            return [seasonYear, '']
+          }
+        })
+      )
+
+      if (!cancelled) {
+        setSeasonNames(Object.fromEntries(entries))
+      }
+    }
+
+    loadSeasonNames()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated])
+
+  const formatSeasonLabel = (seasonYear) => {
+    const startYear = Number(seasonYear)
+    const years = formatSeasonYears(startYear)
+    const apiGameName = String(seasonNames[startYear] || '').trim()
+    const gameName = apiGameName || FTC_GAME_NAME_FALLBACKS[startYear] || ''
+    return gameName ? `${years} ${gameName}` : years
+  }
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -288,27 +402,125 @@ function App() {
     setViewHistory([])
   }
 
+  // Calcula OPR, DPR y CCWM automáticamente usando los scores oficiales de los matches.
+  // No requiere scouting manual: toma únicamente los resultados que entrega el backend/FIRST.
+  const calculateEventMetrics = (teams, eventMatches) => {
+    const teamNumbers = teams.map((team) => Number(team.teamNumber))
+    const indexByTeam = new Map(teamNumbers.map((number, index) => [number, index]))
+    const n = teamNumbers.length
+
+    if (!n) return teams
+
+    const rows = []
+    const offenseScores = []
+    const defenseScores = []
+
+    for (const match of eventMatches) {
+      const redTeams = (match.red?.teams || []).map(Number).filter((number) => indexByTeam.has(number))
+      const blueTeams = (match.blue?.teams || []).map(Number).filter((number) => indexByTeam.has(number))
+      const redScore = Number(match.red?.score)
+      const blueScore = Number(match.blue?.score)
+
+      if (!redTeams.length || !blueTeams.length) continue
+      if (!Number.isFinite(redScore) || !Number.isFinite(blueScore) || redScore < 0 || blueScore < 0) continue
+
+      const redRow = Array(n).fill(0)
+      const blueRow = Array(n).fill(0)
+      redTeams.forEach((number) => { redRow[indexByTeam.get(number)] = 1 })
+      blueTeams.forEach((number) => { blueRow[indexByTeam.get(number)] = 1 })
+
+      rows.push(redRow, blueRow)
+      offenseScores.push(redScore, blueScore)
+      defenseScores.push(blueScore, redScore)
+    }
+
+    if (!rows.length) return teams
+
+    // Resuelve las ecuaciones normales (AᵀA)x=Aᵀb con una pequeña regularización
+    // para que eventos con pocos matches también puedan mostrar una estimación estable.
+    const solveLeastSquares = (scores) => {
+      const matrix = Array.from({ length: n }, () => Array(n).fill(0))
+      const vector = Array(n).fill(0)
+
+      for (let r = 0; r < rows.length; r += 1) {
+        const row = rows[r]
+        for (let i = 0; i < n; i += 1) {
+          if (!row[i]) continue
+          vector[i] += row[i] * scores[r]
+          for (let j = 0; j < n; j += 1) {
+            if (row[j]) matrix[i][j] += row[i] * row[j]
+          }
+        }
+      }
+
+      for (let i = 0; i < n; i += 1) matrix[i][i] += 1e-8
+
+      // Eliminación Gauss-Jordan con pivoteo parcial.
+      const augmented = matrix.map((row, i) => [...row, vector[i]])
+      for (let col = 0; col < n; col += 1) {
+        let pivot = col
+        for (let row = col + 1; row < n; row += 1) {
+          if (Math.abs(augmented[row][col]) > Math.abs(augmented[pivot][col])) pivot = row
+        }
+        ;[augmented[col], augmented[pivot]] = [augmented[pivot], augmented[col]]
+
+        const divisor = augmented[col][col]
+        if (Math.abs(divisor) < 1e-12) continue
+        for (let j = col; j <= n; j += 1) augmented[col][j] /= divisor
+
+        for (let row = 0; row < n; row += 1) {
+          if (row === col) continue
+          const factor = augmented[row][col]
+          if (!factor) continue
+          for (let j = col; j <= n; j += 1) {
+            augmented[row][j] -= factor * augmented[col][j]
+          }
+        }
+      }
+
+      return augmented.map((row, i) =>
+        Number.isFinite(row[n]) && Math.abs(row[i]) > 1e-12 ? row[n] : null
+      )
+    }
+
+    const opr = solveLeastSquares(offenseScores)
+    const dpr = solveLeastSquares(defenseScores)
+
+    return teams.map((team, index) => ({
+      ...team,
+      opr: opr[index] ?? team.opr ?? null,
+      dpr: dpr[index] ?? team.dpr ?? null,
+      ccwm:
+        opr[index] !== null && dpr[index] !== null
+          ? opr[index] - dpr[index]
+          : team.ccwm ?? null
+    }))
+  }
+
   const fetchEventTeams = async (eventKey) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/event/${eventKey}/teams`
-  )
+    const response = await fetch(`${API_BASE_URL}/api/event/${eventKey}/teams`)
 
-  if (!response.ok) {
-    throw new Error('No se pudieron obtener los equipos del evento')
+    if (!response.ok) {
+      throw new Error('No se pudieron obtener los equipos del evento')
+    }
+
+    const data = await response.json()
+    const teams = Array.isArray(data)
+      ? data
+      : Array.isArray(data.teams)
+        ? data.teams
+        : []
+
+    // En cuanto se cargan los equipos, también cargamos los resultados oficiales
+    // y llenamos OPR/DPR/CCWM antes de mostrar la tabla.
+    try {
+      const eventMatches = await fetchEventMatches(eventKey)
+      return calculateEventMetrics(teams, eventMatches)
+    } catch (error) {
+      console.error('No se pudieron calcular métricas automáticas:', error)
+      return teams
+    }
   }
-
-  const data = await response.json()
-
-  if (Array.isArray(data)) {
-    return data
-  }
-
-  if (Array.isArray(data.teams)) {
-    return data.teams
-  }
-
-  return []
-}
 
 const fetchEventMatches = async (eventKey) => {
   const response = await fetch(
@@ -867,8 +1079,8 @@ const fetchEventMatches = async (eventKey) => {
         const games = Number(item.record?.wins || 0) + Number(item.record?.losses || 0) + Number(item.record?.ties || 0)
         return games ? (Number(item.record?.wins || 0) + Number(item.record?.ties || 0) * .5) / games : null
       }
-      if (teamSort.key === 'epa') return item.epa
-      if (teamSort.key === 'epaRank') return item.epaRank
+      if (teamSort.key === 'rankingPoints') return item.rankingPoints
+      if (teamSort.key === 'qualifyingPoints') return item.qualifyingPoints
       if (teamSort.key === 'opr') return item.opr
       if (teamSort.key === 'dpr') return item.dpr
       if (teamSort.key === 'ccwm') return item.ccwm
@@ -1000,8 +1212,8 @@ const fetchEventMatches = async (eventKey) => {
 
     const value = (item) => {
       const scouting = teamScoutingStats(item.teamNumber, pickEventKey)
-      if (pickSort === 'epa') return Number(item.epa ?? -Infinity)
-      if (pickSort === 'epaRank') return Number(item.epaRank ?? Infinity)
+      if (pickSort === 'rankingPoints') return Number(item.rankingPoints ?? -Infinity)
+      if (pickSort === 'qualifyingPoints') return Number(item.qualifyingPoints ?? -Infinity)
       if (pickSort === 'opr') return Number(item.opr ?? -Infinity)
       if (pickSort === 'ccwm') return Number(item.ccwm ?? -Infinity)
       if (pickSort === 'defense') return Number(scouting.defense ?? -Infinity)
@@ -1015,7 +1227,7 @@ const fetchEventMatches = async (eventKey) => {
     }
 
     return [...filtered].sort((a, b) =>
-      ['rank', 'epaRank'].includes(pickSort) ? value(a) - value(b) : value(b) - value(a)
+      ['rank'].includes(pickSort) ? value(a) - value(b) : value(b) - value(a)
     )
   }, [pickTeams, pickSearch, pickSort, scoutingRecords, pickEventKey])
 
@@ -1103,11 +1315,18 @@ const fetchEventMatches = async (eventKey) => {
   }
 
   return (
-    <div className="app">
+    <div
+      className="app"
+      style={{
+        '--quantum-pink': QUANTUM_FTC_TEAMS[0].primary,
+        '--quantum-green': QUANTUM_FTC_TEAMS[1].primary,
+        '--quantum-purple': QUANTUM_FTC_TEAMS[0].secondary
+      }}
+    >
       <header className="header">
         <div className="logo-area" onClick={goHome}>
-          <h1>Quantum Scouting</h1>
-          <p>FRC Team Intelligence</p>
+          <h1>Quantum FTC Scouting</h1>
+          <p>24831 · 28076 | FTC Team Intelligence</p>
         </div>
 
         <nav className="main-nav">
@@ -1157,7 +1376,7 @@ const fetchEventMatches = async (eventKey) => {
             <select value={year} onChange={(e) => changeYear(e.target.value)}>
               {seasons.map((seasonYear) => (
                 <option key={seasonYear} value={String(seasonYear)}>
-                  {seasonYear}
+                  {formatSeasonLabel(seasonYear)}
                 </option>
               ))}
             </select>
@@ -1169,20 +1388,70 @@ const fetchEventMatches = async (eventKey) => {
         {view === 'home' && (
           <>
             <section className="hero-section">
-              <span className="section-label">QUANTUM SCOUTING V3</span>
-              <h2>Información FRC y scouting en un solo lugar.</h2>
+              <span className="section-label">QUANTUM FTC SCOUTING</span>
+              <h2>Scouting FTC para 24831 y 28076.</h2>
               <p>
                 Busca equipos, analiza eventos, revisa matches y convierte tus
                 observaciones en datos útiles para estrategia.
               </p>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '14px',
+                  marginTop: '24px'
+                }}
+              >
+                {QUANTUM_FTC_TEAMS.map((quantumTeam) => (
+                  <button
+                    key={quantumTeam.number}
+                    type="button"
+                    onClick={() => searchTeam(quantumTeam.number)}
+                    style={{
+                      textAlign: 'left',
+                      padding: '18px 20px',
+                      borderRadius: '16px',
+                      border: `1px solid ${quantumTeam.primary}`,
+                      borderLeft: `6px solid ${quantumTeam.primary}`,
+                      background: `linear-gradient(135deg, ${quantumTeam.primary}22, ${quantumTeam.secondary}22)`,
+                      color: '#fff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'block',
+                        color: quantumTeam.primary,
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        letterSpacing: '.14em',
+                        marginBottom: '6px'
+                      }}
+                    >
+                      FTC TEAM
+                    </span>
+                    <strong style={{ fontSize: '28px' }}>{quantumTeam.number}</strong>
+                    <span
+                      style={{
+                        display: 'block',
+                        color: '#cdbbd3',
+                        marginTop: '5px'
+                      }}
+                    >
+                      Ver equipo →
+                    </span>
+                  </button>
+                ))}
+              </div>
             </section>
 
             <section className="search-box">
-              <label>Buscar equipo FRC</label>
+              <label>Buscar equipo FTC</label>
               <div className="search-row">
                 <input
                   type="number"
-                  placeholder="Ej. 8740"
+                  placeholder="Ej. 24831"
                   value={teamInput}
                   onChange={(e) => setTeamInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -1315,7 +1584,7 @@ const fetchEventMatches = async (eventKey) => {
                 <section className="team-events-section">
                   <div className="section-heading">
                     <div>
-                      <span className="section-label">TEMPORADA {year}</span>
+                      <span className="section-label">TEMPORADA {formatSeasonLabel(year)}</span>
                       <h2>Eventos del equipo</h2>
                       <p>
                         {teamEvents.length}{' '}
@@ -1374,7 +1643,7 @@ const fetchEventMatches = async (eventKey) => {
                     </div>
                   ) : (
                     <div className="empty-state">
-                      Este equipo no tiene eventos registrados en {year}.
+                      Este equipo no tiene eventos registrados en {formatSeasonLabel(year)}.
                     </div>
                   )}
                 </section>
@@ -1413,7 +1682,7 @@ const fetchEventMatches = async (eventKey) => {
                 <button onClick={goScouting}>Scouting</button>
                 <button onClick={goEvents}>Eventos</button>
                 <button onClick={goCompare}>Comparar</button>
-                <button onClick={goAlliances}>Alianzas 3v3</button>
+                <button onClick={goAlliances}>Alianzas</button>
                 <button onClick={goPickList}>Pick List</button>
                 <button onClick={goLive}>Live Event</button>
                 <button onClick={goFavorites}>★ Favoritos</button>
@@ -1425,8 +1694,8 @@ const fetchEventMatches = async (eventKey) => {
         {view === 'events' && (
           <section className="events-page">
             <PageHeader
-              label={`TEMPORADA ${year}`}
-              title="Eventos FRC"
+              label={`TEMPORADA ${formatSeasonLabel(year)}`}
+              title="Eventos FTC"
               subtitle={`${events.length} eventos cargados`}
               onBack={goBack}
             />
@@ -1634,6 +1903,7 @@ const fetchEventMatches = async (eventKey) => {
                   <button
                     className="dashboard-team-card"
                     key={item.teamNumber}
+                    style={quantumTeamStyle(item.teamNumber, true)}
                     onClick={() => openTeam(item.teamNumber)}
                   >
                     <span>#{index + 1}</span>
@@ -1673,13 +1943,13 @@ const fetchEventMatches = async (eventKey) => {
                     <SortableHeader label="Team" sortKey="teamNumber" sort={teamSort} onSort={toggleTeamSort} />
                     <SortableHeader label="Nombre" sortKey="name" sort={teamSort} onSort={toggleTeamSort} preferredDirection="asc" />
                     <SortableHeader label="Record" sortKey="record" sort={teamSort} onSort={toggleTeamSort} />
-                    <SortableHeader label="EPA" sortKey="epa" sort={teamSort} onSort={toggleTeamSort} />
-                    <SortableHeader label="EPA Rank" sortKey="epaRank" sort={teamSort} onSort={toggleTeamSort} preferredDirection="asc" />
+                    <SortableHeader label="RP" sortKey="rankingPoints" sort={teamSort} onSort={toggleTeamSort} />
+                    <SortableHeader label="QP" sortKey="qualifyingPoints" sort={teamSort} onSort={toggleTeamSort} />
                     <SortableHeader label="OPR" sortKey="opr" sort={teamSort} onSort={toggleTeamSort} />
                     <SortableHeader label="DPR" sortKey="dpr" sort={teamSort} onSort={toggleTeamSort} />
                     <SortableHeader label="CCWM" sortKey="ccwm" sort={teamSort} onSort={toggleTeamSort} />
                     <SortableHeader label="Scout" sortKey="scout" sort={teamSort} onSort={toggleTeamSort} />
-                    <SortableHeader label={`OPR Prom. ${Number(year) - 1}`} sortKey="averageOpr" sort={teamSort} onSort={toggleTeamSort} />
+                    
                   </tr>
                 </thead>
                 <tbody>
@@ -1689,7 +1959,7 @@ const fetchEventMatches = async (eventKey) => {
                       selectedEvent.key
                     )
                     return (
-                      <tr key={item.teamNumber}>
+                      <tr key={item.teamNumber} style={quantumTeamStyle(item.teamNumber)}>
                         <td>
                           <button
                             className="favorite-star"
@@ -1703,6 +1973,7 @@ const fetchEventMatches = async (eventKey) => {
                         </td>
                         <td
                           className="team-number-cell"
+                          style={quantumTeamTextStyle(item.teamNumber)}
                           onClick={() => openTeam(item.teamNumber)}
                         >
                           {item.teamNumber}
@@ -1713,12 +1984,8 @@ const fetchEventMatches = async (eventKey) => {
                         <td onClick={() => openTeam(item.teamNumber)}>
                           {formatRecord(item.record)}
                         </td>
-                        <td onClick={() => openTeam(item.teamNumber)}>
-                          {formatNumber(item.epa)}
-                        </td>
-                        <td onClick={() => openTeam(item.teamNumber)}>
-                          {item.epaRank != null ? `#${item.epaRank}` : '—'}
-                        </td>
+                        <td onClick={() => openTeam(item.teamNumber)}>{formatNumber(item.rankingPoints)}</td>
+                        <td onClick={() => openTeam(item.teamNumber)}>{formatNumber(item.qualifyingPoints)}</td>
                         <td onClick={() => openTeam(item.teamNumber)}>
                           {formatNumber(item.opr)}
                         </td>
@@ -1729,9 +1996,7 @@ const fetchEventMatches = async (eventKey) => {
                           {formatNumber(item.ccwm)}
                         </td>
                         <td>{scout.count}</td>
-                        <td onClick={() => openTeam(item.teamNumber)}>
-                          {formatNumber(item.averageOpr)}
-                        </td>
+                        
                       </tr>
                     )
                   })}
@@ -1805,7 +2070,7 @@ const fetchEventMatches = async (eventKey) => {
         {view === 'compare' && (
           <section className="compare-page">
             <PageHeader
-              label={`TEMPORADA ${year}`}
+              label={`TEMPORADA ${formatSeasonLabel(year)}`}
               title="Comparar equipos"
               subtitle="Compara hasta cuatro equipos dentro del mismo evento."
               onBack={goBack}
@@ -1847,6 +2112,7 @@ const fetchEventMatches = async (eventKey) => {
                           <article
                             className="comparison-card"
                             key={item.teamNumber}
+                            style={quantumTeamStyle(item.teamNumber, true)}
                           >
                             <span className="section-label">TEAM</span>
                             <h3>{item.teamNumber}</h3>
@@ -1861,7 +2127,15 @@ const fetchEventMatches = async (eventKey) => {
                                 value={formatRecord(item.record)}
                               />
                               <CompareStat
-                                label="OPR"
+                                label="Ranking Points (RP)"
+                                value={formatNumber(item.rankingPoints)}
+                              />
+                              <CompareStat
+                                label="Qualifying Points (QP)"
+                                value={formatNumber(item.qualifyingPoints)}
+                              />
+                              <CompareStat
+                                label="OPR (analítica)"
                                 value={formatNumber(item.opr)}
                               />
                               <CompareStat
@@ -1902,9 +2176,9 @@ const fetchEventMatches = async (eventKey) => {
         {view === 'alliances' && (
           <section className="compare-page">
             <PageHeader
-              label="3 VS 3"
+              label="ALLIANCES"
               title="Comparación de alianzas"
-              subtitle="Comparación estadística; no es una predicción del ganador."
+              subtitle="Compara alianzas FTC de 2 equipos; las métricas analíticas apoyan estrategia y no predicen al ganador."
               onBack={goBack}
             />
 
@@ -1946,7 +2220,7 @@ const fetchEventMatches = async (eventKey) => {
           <section className="teams-page">
             <PageHeader
               label="STRATEGY"
-              title="Alliance Selection / Pick List"
+              title="Pick List"
               subtitle="Ordena los datos; la decisión final sigue siendo de estrategia."
               onBack={goBack}
             />
@@ -1962,10 +2236,10 @@ const fetchEventMatches = async (eventKey) => {
                 value={pickSort}
                 onChange={(e) => setPickSort(e.target.value)}
               >
-                <option value="rank">Rank</option>
-                <option value="epa">EPA</option>
-                <option value="epaRank">EPA Rank</option>
-                <option value="opr">OPR</option>
+                <option value="rank">Rank oficial</option>
+                <option value="rankingPoints">Ranking Points (RP)</option>
+                <option value="qualifyingPoints">Qualifying Points (QP)</option>
+                <option value="opr">OPR (analítica)</option>
                 <option value="ccwm">CCWM</option>
                 <option value="defense">Defensa scouting</option>
                 <option value="consistency">Consistencia scouting</option>
@@ -1988,8 +2262,8 @@ const fetchEventMatches = async (eventKey) => {
                       <th>Rank</th>
                       <th>Team</th>
                       <th>Nombre</th>
-                      <th>EPA</th>
-                      <th>EPA Rank</th>
+                      <th>RP</th>
+                      <th>QP</th>
                       <th>OPR</th>
                       <th>CCWM</th>
                       <th>Defensa</th>
@@ -2004,7 +2278,7 @@ const fetchEventMatches = async (eventKey) => {
                         pickEventKey
                       )
                       return (
-                        <tr key={item.teamNumber}>
+                        <tr key={item.teamNumber} style={quantumTeamStyle(item.teamNumber)}>
                           <td>
                             <button
                               className="favorite-star"
@@ -2021,8 +2295,8 @@ const fetchEventMatches = async (eventKey) => {
                             {item.teamNumber}
                           </td>
                           <td>{item.name}</td>
-                          <td>{formatNumber(item.epa)}</td>
-                          <td>{item.epaRank != null ? `#${item.epaRank}` : '—'}</td>
+                          <td>{formatNumber(item.rankingPoints)}</td>
+                          <td>{formatNumber(item.qualifyingPoints)}</td>
                           <td>{formatNumber(item.opr)}</td>
                           <td>{formatNumber(item.ccwm)}</td>
                           <td>{formatNumber(scout.defense)}</td>
@@ -2126,6 +2400,7 @@ const fetchEventMatches = async (eventKey) => {
                           {liveData.ranked.map((item) => (
                             <tr
                               key={item.teamNumber}
+                              style={quantumTeamStyle(item.teamNumber)}
                               onClick={() => openTeam(item.teamNumber)}
                             >
                               <td>#{item.rank}</td>
@@ -2149,6 +2424,7 @@ const fetchEventMatches = async (eventKey) => {
                       {liveData.pending.map((item, index) => (
                         <button
                           className="pending-card"
+                          style={quantumTeamStyle(item.teamNumber, true)}
                           key={`${item.match}-${item.teamNumber}-${index}`}
                           onClick={() => {
                             const event = events.find(
@@ -2201,7 +2477,11 @@ const fetchEventMatches = async (eventKey) => {
                 {favoriteTeamData.map((item) => {
                   const scout = teamScoutingStats(item.teamNumber)
                   return (
-                    <article className="favorite-card" key={item.teamNumber}>
+                    <article
+                      className="favorite-card"
+                      key={item.teamNumber}
+                      style={quantumTeamStyle(item.teamNumber, true)}
+                    >
                       <button
                         className="favorite-star"
                         onClick={() => toggleFavorite(item.teamNumber)}
@@ -2333,8 +2613,12 @@ const fetchEventMatches = async (eventKey) => {
                       >
                         <option value="">Selecciona equipo</option>
                         {scoutingTeamOptions.map((item) => (
-                          <option key={item.teamNumber} value={item.teamNumber}>
-                            {item.teamNumber} — {item.name}
+                          <option
+                            key={item.teamNumber}
+                            value={item.teamNumber}
+                            style={quantumTeamTextStyle(item.teamNumber)}
+                          >
+                            {quantumTeamLabel(item)}
                           </option>
                         ))}
                       </select>
@@ -2543,8 +2827,9 @@ const fetchEventMatches = async (eventKey) => {
                             <option
                               key={item.teamNumber}
                               value={item.teamNumber}
+                              style={quantumTeamTextStyle(item.teamNumber)}
                             >
-                              {item.teamNumber} — {item.name}
+                              {quantumTeamLabel(item)}
                             </option>
                           ))}
                       </select>
@@ -2554,7 +2839,7 @@ const fetchEventMatches = async (eventKey) => {
                       label="Drivetrain"
                       value={pitForm.drivetrain}
                       onChange={(value) => updatePitField('drivetrain', value)}
-                      placeholder="Swerve, tank..."
+                      placeholder="Mecanum, tank, omni..."
                     />
                     <TextField
                       label="Peso"
@@ -2899,8 +3184,12 @@ function TeamSelect({ label, value, teams, onChange }) {
       <select value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">Sin seleccionar</option>
         {teams.map((item) => (
-          <option key={item.teamNumber} value={item.teamNumber}>
-            {item.teamNumber} — {item.name}
+          <option
+            key={item.teamNumber}
+            value={item.teamNumber}
+            style={quantumTeamTextStyle(item.teamNumber)}
+          >
+            {quantumTeamLabel(item)}
           </option>
         ))}
       </select>
@@ -2926,7 +3215,7 @@ function AllianceBuilder({
         {values.map((value, index) => (
           <TeamSelect
             key={index}
-            label={`Robot ${index + 1}`}
+            label={`Equipo ${index + 1}`}
             value={value}
             teams={teams}
             onChange={(newValue) => onChange(color, index, newValue)}
@@ -2935,10 +3224,10 @@ function AllianceBuilder({
       </div>
 
       <div className="comparison-stats">
-        <CompareStat label="OPR combinado" value={formatNumber(summary.opr)} />
-        <CompareStat label="DPR combinado" value={formatNumber(summary.dpr)} />
+        <CompareStat label="OPR combinado (analítica)" value={formatNumber(summary.opr)} />
+        <CompareStat label="DPR combinado (analítica)" value={formatNumber(summary.dpr)} />
         <CompareStat
-          label="CCWM combinado"
+          label="CCWM combinado (analítica)"
           value={formatNumber(summary.ccwm)}
         />
         <CompareStat
@@ -2987,6 +3276,7 @@ function MatchAlliances({ match, openTeam, large = false }) {
             <button
               key={teamNumber}
               className="match-team-button"
+              style={quantumTeamTextStyle(teamNumber)}
               onClick={(event) => teamClick(event, teamNumber)}
             >
               {teamNumber}
@@ -3015,6 +3305,7 @@ function MatchAlliances({ match, openTeam, large = false }) {
             <button
               key={teamNumber}
               className="match-team-button"
+              style={quantumTeamTextStyle(teamNumber)}
               onClick={(event) => teamClick(event, teamNumber)}
             >
               {teamNumber}
@@ -3068,9 +3359,9 @@ function LoginScreen({ password, setPassword, error, loading, onSubmit }) {
           QUANTUM
         </div>
 
-        <h1 style={{ margin: 0, fontSize: '34px' }}>Quantum Scouting</h1>
+        <h1 style={{ margin: 0, fontSize: '34px' }}>Quantum FTC Scouting</h1>
         <p style={{ margin: '10px 0 28px', color: '#cdbbd3' }}>
-          Acceso privado del equipo
+          Acceso privado · FTC 24831 + 28076
         </p>
 
         <label
