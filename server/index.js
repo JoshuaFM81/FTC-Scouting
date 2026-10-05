@@ -2108,9 +2108,13 @@ app.post(
       )
 
       res.json({
-        ok: true,
-        id
-      })
+  ok: true,
+  id,
+  record: {
+    ...record,
+    id
+  }
+})
     } catch (error) {
       console.error(
         'Error guardando scouting:',
@@ -2262,9 +2266,15 @@ app.put(
       )
 
       res.json({
-        ok: true,
-        id
-      })
+  ok: true,
+  id,
+  record: {
+    ...record,
+    id,
+    eventKey,
+    teamNumber
+  }
+})
     } catch (error) {
       console.error(
         'Error guardando pit:',
