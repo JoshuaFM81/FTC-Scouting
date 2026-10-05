@@ -15735,3 +15735,35 @@ main,
     inset 0 -1px 0 rgba(240, 90, 166, 0.12),
     0 8px 25px rgba(0, 0, 0, 0.18) !important;
 }
+
+/* =========================================================
+   FTC — PROMEDIO OPR TEMPORADA ANTERIOR
+   ========================================================= */
+
+/* La tabla puede crecer con RP, QP y Prom. OPR sin comprimir
+   demasiado las columnas existentes. */
+.teams-table {
+  min-width: 1050px;
+}
+
+/* Columna del promedio histórico de OPR */
+.teams-table th.previous-opr-column,
+.teams-table td.previous-opr-column {
+  min-width: 115px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Hace que el dato histórico se distinga ligeramente
+   sin meter otro color fuera del tema Quantum. */
+.previous-opr-value {
+  color: #D77AC6;
+  font-weight: 700;
+}
+
+/* En móvil conservamos el scroll horizontal. */
+@media (max-width: 700px) {
+  .teams-table {
+    min-width: 1050px;
+  }
+}

@@ -14,8 +14,7 @@ app.use(express.json())
 // FIRST FTC EVENTS API
 // ============================================================
 
-const FTC_API_BASE_URL =
-  'https://ftc-api.firstinspires.org/v2.0'
+const FTC_API_BASE_URL = 'https://ftc-api.firstinspires.org/v2.0'
 
 function getFtcHeaders() {
   const username = process.env.FTC_API_USERNAME
@@ -38,7 +37,7 @@ function getFtcHeaders() {
 function ftcCredentialsConfigured() {
   return Boolean(
     process.env.FTC_API_USERNAME &&
-      process.env.FTC_API_TOKEN
+    process.env.FTC_API_TOKEN
   )
 }
 
@@ -56,9 +55,7 @@ async function ftcFetch(path) {
 
   const response = await fetch(
     `${FTC_API_BASE_URL}${path}`,
-    {
-      headers
-    }
+    { headers }
   )
 
   if (!response.ok) {
@@ -72,12 +69,11 @@ async function ftcFetch(path) {
         message += `: ${body.slice(0, 300)}`
       }
     } catch {
-      // Ignoramos errores leyendo el mensaje.
+      // Ignorar error leyendo mensaje.
     }
 
     const error = new Error(message)
     error.status = response.status
-
     throw error
   }
 
@@ -152,8 +148,8 @@ async function findEventFromSeasonList(
     events.find((event) => {
       const apiCode = String(
         event.code ??
-          event.eventCode ??
-          ''
+        event.eventCode ??
+        ''
       )
         .trim()
         .toUpperCase()
@@ -162,6 +158,10 @@ async function findEventFromSeasonList(
     }) || null
   )
 }
+
+// ============================================================
+// NORMALIZADORES
+// ============================================================
 
 function normalizeEvent(event, season) {
   const eventCode = firstDefined(
@@ -341,41 +341,63 @@ function normalizeRanking(ranking) {
         )
       ) ?? 0,
 
-    rankingPoints:
+    // FTC ranking
+    rs:
       numberOrNull(
-        firstDefined(
-          ranking.rankingPoints,
-          ranking.rp
-        )
+        ranking.sortOrder1
       ),
 
-    qualifyingPoints:
+    matchPoints:
       numberOrNull(
-        firstDefined(
-          ranking.qualifyingPoints,
-          ranking.qp
-        )
+        ranking.sortOrder2
       ),
 
+    basePoints:
+      numberOrNull(
+        ranking.sortOrder3
+      ),
+
+    autoPoints:
+      numberOrNull(
+        ranking.sortOrder4
+      ),
+
+    // Valores originales de FIRST
     sortOrder1:
-      numberOrNull(ranking.sortOrder1),
+      numberOrNull(
+        ranking.sortOrder1
+      ),
 
     sortOrder2:
-      numberOrNull(ranking.sortOrder2),
+      numberOrNull(
+        ranking.sortOrder2
+      ),
 
     sortOrder3:
-      numberOrNull(ranking.sortOrder3),
+      numberOrNull(
+        ranking.sortOrder3
+      ),
 
     sortOrder4:
-      numberOrNull(ranking.sortOrder4),
+      numberOrNull(
+        ranking.sortOrder4
+      ),
 
     sortOrder5:
-      numberOrNull(ranking.sortOrder5),
+      numberOrNull(
+        ranking.sortOrder5
+      ),
 
     sortOrder6:
-      numberOrNull(ranking.sortOrder6)
+      numberOrNull(
+        ranking.sortOrder6
+      )
   }
 }
+
+// ============================================================
+// MATCH HELPERS
+// ============================================================
 
 function getMatchTeams(match) {
   const red = []
@@ -418,7 +440,6 @@ function getMatchTeams(match) {
     })
   }
 
-  // FTC usa dos equipos por alianza en el match.
   const directRed = [
     match.red1,
     match.red2,
@@ -467,17 +488,15 @@ function normalizeMatch(
     .trim()
     .toLowerCase()
 
-  // FIRST puede devolver "QUALIFICATION".
-  // Lo convertimos al formato interno "qual".
   const level =
     rawLevel === 'qual' ||
     rawLevel === 'qualification' ||
     rawLevel === 'qualifications'
       ? 'qual'
       : rawLevel === 'playoff' ||
-          rawLevel === 'playoffs' ||
-          rawLevel === 'elim' ||
-          rawLevel === 'elimination'
+        rawLevel === 'playoffs' ||
+        rawLevel === 'elim' ||
+        rawLevel === 'elimination'
         ? 'playoff'
         : String(defaultLevel || 'qual')
               .trim()
@@ -554,9 +573,11 @@ function normalizeMatch(
 
     compLevel,
 
-    tournamentLevel: level,
+    tournamentLevel:
+      level,
 
-    setNumber: series,
+    setNumber:
+      series,
 
     matchNumber,
 
@@ -586,6 +607,10 @@ function normalizeMatch(
     }
   }
 }
+
+// ============================================================
+// ERROR HANDLER FIRST
+// ============================================================
 
 function sendFtcError(
   res,
@@ -727,11 +752,6 @@ initializeDatabase().catch((error) =>
     error
   )
 )
-
-// ============================================================
-// FIN PARTE 1/3
-// PEGA LA PARTE 2 JUSTO DEBAJO
-// ============================================================
 
 // ============================================================
 // ROOT
@@ -1218,12 +1238,20 @@ app.get(
               dq:
                 ranking?.dq ?? 0,
 
-              rankingPoints:
-                ranking?.rankingPoints ??
+              rs:
+                ranking?.rs ??
                 null,
 
-              qualifyingPoints:
-                ranking?.qualifyingPoints ??
+              matchPoints:
+                ranking?.matchPoints ??
+                null,
+
+              basePoints:
+                ranking?.basePoints ??
+                null,
+
+              autoPoints:
+                ranking?.autoPoints ??
                 null,
 
               sortOrder1:
@@ -1250,10 +1278,8 @@ app.get(
                 ranking?.sortOrder6 ??
                 null,
 
-              // Estas métricas no vienen
-              // directamente del ranking de FIRST.
-              // El frontend puede calcularlas
-              // usando los resultados de matches.
+              // Se calculan en frontend
+              // usando resultados de matches.
               opr: null,
               dpr: null,
               ccwm: null
@@ -1431,12 +1457,20 @@ app.get(
           dq:
             ranking?.dq ?? 0,
 
-          rankingPoints:
-            ranking?.rankingPoints ??
+          rs:
+            ranking?.rs ??
             null,
 
-          qualifyingPoints:
-            ranking?.qualifyingPoints ??
+          matchPoints:
+            ranking?.matchPoints ??
+            null,
+
+          basePoints:
+            ranking?.basePoints ??
+            null,
+
+          autoPoints:
+            ranking?.autoPoints ??
             null,
 
           sortOrder1:
@@ -1477,11 +1511,6 @@ app.get(
     }
   }
 )
-
-// ============================================================
-// FIN PARTE 2/3
-// PEGA LA PARTE 3 JUSTO DEBAJO
-// ============================================================
 
 // ============================================================
 // MATCHES / HYBRID SCHEDULE
@@ -1687,100 +1716,126 @@ app.get(
 )
 
 // ============================================================
-// PREMIOS DE UN EVENTO
+// AWARDS DE UN EVENTO
 // ============================================================
 
 app.get(
   '/api/event/:eventKey/awards',
   async (req, res) => {
-    const parsed =
-      parseEventKey(
-        req.params.eventKey
-      )
+    const parsed = parseEventKey(
+      req.params.eventKey
+    )
 
     if (!parsed) {
       return res.status(400).json({
-        error:
-          'Event key FTC inválido'
+        error: 'Event key FTC inválido'
       })
     }
 
-    const {
-      season,
-      eventCode
-    } = parsed
+    const { season, eventCode } = parsed
 
     try {
-      const data =
-        await ftcFetch(
-          `/${season}/awards/${encodeURIComponent(
-            eventCode
-          )}`
-        )
-
-      res.json(
-        Array.isArray(data.awards)
-          ? data.awards
-          : []
+      const data = await ftcFetch(
+        `/${season}/awards/${encodeURIComponent(eventCode)}`
       )
+
+      const awards = Array.isArray(data.awards)
+        ? data.awards
+        : []
+
+      res.json(awards)
     } catch (error) {
+      if (error.status === 404) {
+        return res.json([])
+      }
+
       sendFtcError(
         res,
         error,
-        'No se pudieron obtener los premios'
+        'No se pudieron obtener los premios del evento'
       )
     }
   }
 )
 
 // ============================================================
-// PREMIOS DE UN EQUIPO EN UN EVENTO
+// AWARDS DE UN EQUIPO EN UN EVENTO
 // ============================================================
 
 app.get(
   '/api/team/:teamNumber/event/:eventKey/awards',
   async (req, res) => {
-    const teamNumber =
-      Number(req.params.teamNumber)
+    const teamNumber = Number(
+      req.params.teamNumber
+    )
 
-    const parsed =
-      parseEventKey(
-        req.params.eventKey
-      )
+    const parsed = parseEventKey(
+      req.params.eventKey
+    )
 
     if (!Number.isInteger(teamNumber)) {
       return res.status(400).json({
-        error:
-          'Número de equipo inválido'
+        error: 'Número de equipo inválido'
       })
     }
 
     if (!parsed) {
       return res.status(400).json({
-        error:
-          'Event key FTC inválido'
+        error: 'Event key FTC inválido'
       })
     }
 
-    const {
-      season,
-      eventCode
-    } = parsed
+    const { season, eventCode } = parsed
 
     try {
-      const data =
-        await ftcFetch(
-          `/${season}/awards/${encodeURIComponent(
-            eventCode
-          )}?teamNumber=${teamNumber}`
-        )
-
-      res.json(
-        Array.isArray(data.awards)
-          ? data.awards
-          : []
+      const data = await ftcFetch(
+        `/${season}/awards/${encodeURIComponent(eventCode)}`
       )
+
+      const awards = Array.isArray(data.awards)
+        ? data.awards
+        : []
+
+      const teamAwards = awards.filter(
+        (award) => {
+          const awardTeamNumber =
+            numberOrNull(
+              firstDefined(
+                award.teamNumber,
+                award.team
+              )
+            )
+
+          if (
+            awardTeamNumber === teamNumber
+          ) {
+            return true
+          }
+
+          if (
+            Array.isArray(award.recipients)
+          ) {
+            return award.recipients.some(
+              (recipient) =>
+                numberOrNull(
+                  firstDefined(
+                    recipient.teamNumber,
+                    recipient.team
+                  )
+                ) === teamNumber
+            )
+          }
+
+          return false
+        }
+      )
+
+      res.json(teamAwards)
     } catch (error) {
+      if (error.status === 404) {
+        return res.json([])
+      }
+
       sendFtcError(
         res,
         error,
@@ -1791,43 +1846,41 @@ app.get(
 )
 
 // ============================================================
-// ALIANZAS OFICIALES
+// ALLIANCES
 // ============================================================
 
 app.get(
   '/api/event/:eventKey/alliances',
   async (req, res) => {
-    const parsed =
-      parseEventKey(
-        req.params.eventKey
-      )
+    const parsed = parseEventKey(
+      req.params.eventKey
+    )
 
     if (!parsed) {
       return res.status(400).json({
-        error:
-          'Event key FTC inválido'
+        error: 'Event key FTC inválido'
       })
     }
 
-    const {
-      season,
-      eventCode
-    } = parsed
+    const { season, eventCode } = parsed
 
     try {
-      const data =
-        await ftcFetch(
-          `/${season}/alliances/${encodeURIComponent(
-            eventCode
-          )}`
-        )
-
-      res.json(
-        Array.isArray(data.alliances)
-          ? data.alliances
-          : []
+      const data = await ftcFetch(
+        `/${season}/alliances/${encodeURIComponent(eventCode)}`
       )
+
+      const alliances = Array.isArray(
+        data.alliances
+      )
+        ? data.alliances
+        : []
+
+      res.json(alliances)
     } catch (error) {
+      if (error.status === 404) {
+        return res.json([])
+      }
+
       sendFtcError(
         res,
         error,
@@ -1844,65 +1897,70 @@ app.get(
 app.get(
   '/api/event/:eventKey/scores/:level',
   async (req, res) => {
-    const parsed =
-      parseEventKey(
-        req.params.eventKey
-      )
+    const parsed = parseEventKey(
+      req.params.eventKey
+    )
 
     if (!parsed) {
       return res.status(400).json({
-        error:
-          'Event key FTC inválido'
+        error: 'Event key FTC inválido'
       })
     }
+
+    const { season, eventCode } = parsed
+
+    const requestedLevel = String(
+      req.params.level
+    )
+      .trim()
+      .toLowerCase()
 
     const level =
-      String(req.params.level)
-        .trim()
-        .toLowerCase()
+      requestedLevel === 'qual' ||
+      requestedLevel ===
+        'qualification' ||
+      requestedLevel ===
+        'qualifications'
+        ? 'qual'
+        : requestedLevel ===
+            'playoff' ||
+          requestedLevel ===
+            'playoffs' ||
+          requestedLevel === 'elim'
+          ? 'playoff'
+          : null
 
-    if (
-      level !== 'qual' &&
-      level !== 'playoff'
-    ) {
+    if (!level) {
       return res.status(400).json({
         error:
-          'El nivel debe ser qual o playoff'
+          'Nivel inválido. Usa qual o playoff.'
       })
     }
 
-    const {
-      season,
-      eventCode
-    } = parsed
-
     try {
-      const data =
-        await ftcFetch(
-          `/${season}/scores/${encodeURIComponent(
-            eventCode
-          )}/${level}`
-        )
-
-      res.json(
-        Array.isArray(
-          data.matchScores
-        )
-          ? data.matchScores
-          : []
+      const data = await ftcFetch(
+        `/${season}/scores/${encodeURIComponent(eventCode)}/${level}`
       )
+
+      res.json(data)
     } catch (error) {
+      if (error.status === 404) {
+        return res.json({
+          matchScores: []
+        })
+      }
+
       sendFtcError(
         res,
         error,
-        'No se pudieron obtener los detalles de puntuación'
+        'No se pudieron obtener los score details'
       )
     }
   }
 )
 
 // ============================================================
-// SINCRONIZACIÓN MULTIUSUARIO
+// SYNC - OBTENER TODOS LOS DATOS
 // ============================================================
 
 app.get(
@@ -1912,7 +1970,7 @@ app.get(
     if (!pool) {
       return res.status(503).json({
         error:
-          'DATABASE_URL no está configurada'
+          'PostgreSQL no está configurado'
       })
     }
 
@@ -1922,63 +1980,82 @@ app.get(
         pitResult,
         favoritesResult
       ] = await Promise.all([
-        pool.query(`
-          SELECT payload
-          FROM scouting_records
-          ORDER BY created_at DESC
-        `),
+        pool.query(
+          `
+            SELECT id, payload, created_at, updated_at
+            FROM scouting_records
+            ORDER BY updated_at DESC
+          `
+        ),
 
-        pool.query(`
-          SELECT payload
-          FROM pit_records
-          ORDER BY updated_at DESC
-        `),
+        pool.query(
+          `
+            SELECT id, event_key, team_number, payload, created_at, updated_at
+            FROM pit_records
+            ORDER BY updated_at DESC
+          `
+        ),
 
-        pool.query(`
-          SELECT team_number
-          FROM favorite_teams
-          ORDER BY team_number
-        `)
+        pool.query(
+          `
+            SELECT team_number, updated_at
+            FROM favorite_teams
+            ORDER BY team_number ASC
+          `
+        )
       ])
 
       res.json({
-        scoutingRecords:
+        scouting:
           scoutingResult.rows.map(
-            (row) => row.payload
+            (row) => ({
+              id: row.id,
+              ...row.payload,
+              createdAt:
+                row.created_at,
+              updatedAt:
+                row.updated_at
+            })
           ),
 
-        pitRecords:
+        pit:
           pitResult.rows.map(
-            (row) => row.payload
+            (row) => ({
+              id: row.id,
+              eventKey:
+                row.event_key,
+              teamNumber:
+                row.team_number,
+              ...row.payload,
+              createdAt:
+                row.created_at,
+              updatedAt:
+                row.updated_at
+            })
           ),
 
         favorites:
           favoritesResult.rows.map(
             (row) =>
-              Number(
-                row.team_number
-              )
-          ),
-
-        syncedAt:
-          new Date().toISOString()
+              Number(row.team_number)
+          )
       })
     } catch (error) {
       console.error(
-        'Error leyendo sincronización:',
+        'Error leyendo sync:',
         error
       )
 
       res.status(500).json({
         error:
-          'No se pudieron sincronizar los datos'
+          'No se pudieron leer los datos sincronizados'
       })
     }
   }
 )
 
 // ============================================================
-// GUARDAR MATCH SCOUTING
+// SYNC - GUARDAR SCOUTING
 // ============================================================
 
 app.post(
@@ -1988,75 +2065,93 @@ app.post(
     if (!pool) {
       return res.status(503).json({
         error:
-          'DATABASE_URL no está configurada'
+          'PostgreSQL no está configurado'
       })
     }
 
-    try {
-      const record = {
-        ...req.body
-      }
+    const record = req.body || {}
 
-      record.id = String(
-        record.id ||
-          crypto.randomUUID()
+    const id = String(
+      firstDefined(
+        record.id,
+        `${record.eventKey || 'event'}-${record.matchKey || record.matchNumber || 'match'}-${record.teamNumber || 'team'}`
       )
+    )
 
-      record.updatedAt =
-        new Date().toISOString()
-
+    try {
       await pool.query(
         `
           INSERT INTO scouting_records (
             id,
-            payload
+            payload,
+            created_at,
+            updated_at
           )
           VALUES (
             $1,
-            $2::jsonb
+            $2::jsonb,
+            NOW(),
+            NOW()
           )
-
           ON CONFLICT (id)
           DO UPDATE SET
             payload = EXCLUDED.payload,
             updated_at = NOW()
         `,
         [
-          record.id,
-          JSON.stringify(record)
+          id,
+          JSON.stringify({
+            ...record,
+            id
+          })
         ]
       )
 
       res.json({
         ok: true,
-        record
+        id
       })
     } catch (error) {
       console.error(
-        'Error guardando Match Scouting:',
+        'Error guardando scouting:',
         error
       )
 
       res.status(500).json({
         error:
-          'No se pudo guardar el Match Scouting'
+          'No se pudo guardar el scouting'
       })
     }
   }
 )
 
 // ============================================================
-// ELIMINAR MATCH SCOUTING
+// SYNC - BORRAR SCOUTING
 // ============================================================
 
 app.delete(
-  '/api/sync/scouting/:id',
+  '/api/sync/scouting',
   requireSyncAuth,
   async (req, res) => {
     if (!pool) {
       return res.status(503).json({
         error:
-          'DATABASE_URL no está configurada'
+          'PostgreSQL no está configurado'
+      })
+    }
+
+    const id = String(
+      firstDefined(
+        req.body?.id,
+        req.query?.id,
+        ''
+      )
+    )
+
+    if (!id) {
+      return res.status(400).json({
+        error:
+          'Falta el id del scouting'
       })
     }
 
@@ -2066,9 +2161,7 @@ app.delete(
           DELETE FROM scouting_records
           WHERE id = $1
         `,
-        [
-          String(req.params.id)
-        ]
+        [id]
       )
 
       res.json({
@@ -2076,20 +2169,20 @@ app.delete(
       })
     } catch (error) {
       console.error(
-        'Error eliminando Match Scouting:',
+        'Error borrando scouting:',
         error
       )
 
       res.status(500).json({
         error:
-          'No se pudo eliminar el Match Scouting'
+          'No se pudo borrar el scouting'
       })
     }
   }
 )
 
 // ============================================================
-// GUARDAR / ACTUALIZAR PIT SCOUTING
+// SYNC - GUARDAR PIT
 // ============================================================
 
 app.put(
@@ -2099,98 +2192,130 @@ app.put(
     if (!pool) {
       return res.status(503).json({
         error:
-          'DATABASE_URL no está configurada'
+          'PostgreSQL no está configurado'
       })
     }
 
-    try {
-      const record = {
-        ...req.body
-      }
+    const record = req.body || {}
 
-      if (
-        !record.eventKey ||
-        !record.teamNumber
-      ) {
-        return res.status(400).json({
-          error:
-            'Falta el evento o el número de equipo'
-        })
-      }
+    const eventKey = String(
+      record.eventKey || ''
+    )
 
-      record.id = String(
-        record.id ||
-          crypto.randomUUID()
+    const teamNumber = Number(
+      record.teamNumber
+    )
+
+    if (
+      !eventKey ||
+      !Number.isInteger(teamNumber)
+    ) {
+      return res.status(400).json({
+        error:
+          'eventKey y teamNumber son requeridos'
+      })
+    }
+
+    const id = String(
+      firstDefined(
+        record.id,
+        `${eventKey}-${teamNumber}`
       )
+    )
 
-      record.updatedAt =
-        new Date().toISOString()
-
+    try {
       await pool.query(
         `
           INSERT INTO pit_records (
             id,
             event_key,
             team_number,
-            payload
+            payload,
+            created_at,
+            updated_at
           )
           VALUES (
             $1,
             $2,
             $3,
-            $4::jsonb
+            $4::jsonb,
+            NOW(),
+            NOW()
           )
-
-          ON CONFLICT (
-            event_key,
-            team_number
-          )
-
+          ON CONFLICT (event_key, team_number)
           DO UPDATE SET
             id = EXCLUDED.id,
             payload = EXCLUDED.payload,
             updated_at = NOW()
         `,
         [
-          record.id,
-          record.eventKey,
-          Number(
-            record.teamNumber
-          ),
-          JSON.stringify(record)
+          id,
+          eventKey,
+          teamNumber,
+          JSON.stringify({
+            ...record,
+            id,
+            eventKey,
+            teamNumber
+          })
         ]
       )
 
       res.json({
         ok: true,
-        record
+        id
       })
     } catch (error) {
       console.error(
-        'Error guardando Pit Scouting:',
+        'Error guardando pit:',
         error
       )
 
       res.status(500).json({
         error:
-          'No se pudo guardar el Pit Scouting'
+          'No se pudo guardar el pit scouting'
       })
     }
   }
 )
 
 // ============================================================
-// ELIMINAR PIT SCOUTING
+// SYNC - BORRAR PIT
 // ============================================================
 
 app.delete(
-  '/api/sync/pit/:id',
+  '/api/sync/pit',
   requireSyncAuth,
   async (req, res) => {
     if (!pool) {
       return res.status(503).json({
         error:
-          'DATABASE_URL no está configurada'
+          'PostgreSQL no está configurado'
+      })
+    }
+
+    const eventKey = String(
+      firstDefined(
+        req.body?.eventKey,
+        req.query?.eventKey,
+        ''
+      )
+    )
+
+    const teamNumber = Number(
+      firstDefined(
+        req.body?.teamNumber,
+        req.query?.teamNumber
+      )
+    )
+
+    if (
+      !eventKey ||
+      !Number.isInteger(teamNumber)
+    ) {
+      return res.status(400).json({
+        error:
+          'eventKey y teamNumber son requeridos'
       })
     }
 
@@ -2198,10 +2323,12 @@ app.delete(
       await pool.query(
         `
           DELETE FROM pit_records
-          WHERE id = $1
+          WHERE event_key = $1
+            AND team_number = $2
         `,
         [
-          String(req.params.id)
+          eventKey,
+          teamNumber
         ]
       )
 
@@ -2210,20 +2337,20 @@ app.delete(
       })
     } catch (error) {
       console.error(
-        'Error eliminando Pit Scouting:',
+        'Error borrando pit:',
         error
       )
 
       res.status(500).json({
         error:
-          'No se pudo eliminar el Pit Scouting'
+          'No se pudo borrar el pit scouting'
       })
     }
   }
 )
 
 // ============================================================
-// FAVORITOS
+// SYNC - FAVORITOS
 // ============================================================
 
 app.put(
@@ -2233,65 +2360,53 @@ app.put(
     if (!pool) {
       return res.status(503).json({
         error:
-          'DATABASE_URL no está configurada'
+          'PostgreSQL no está configurado'
       })
     }
+
+    const favorites =
+      Array.isArray(req.body?.favorites)
+        ? req.body.favorites
+            .map(Number)
+            .filter(Number.isInteger)
+        : []
 
     const client =
       await pool.connect()
 
     try {
-      const favorites =
-        Array.isArray(
-          req.body?.favorites
-        )
-          ? [
-              ...new Set(
-                req.body.favorites
-                  .map(Number)
-                  .filter(
-                    Number.isFinite
-                  )
-              )
-            ]
-          : []
-
-      await client.query(
-        'BEGIN'
-      )
+      await client.query('BEGIN')
 
       await client.query(
         'DELETE FROM favorite_teams'
       )
 
       for (
-        const teamNumber
-        of favorites
+        const teamNumber of favorites
       ) {
         await client.query(
           `
             INSERT INTO favorite_teams (
-              team_number
+              team_number,
+              updated_at
             )
-            VALUES ($1)
-            ON CONFLICT DO NOTHING
+            VALUES ($1, NOW())
+            ON CONFLICT (team_number)
+            DO UPDATE SET
+              updated_at = NOW()
           `,
           [teamNumber]
         )
       }
 
-      await client.query(
-        'COMMIT'
-      )
+      await client.query('COMMIT')
 
       res.json({
         ok: true,
         favorites
       })
     } catch (error) {
-      await client
-        .query('ROLLBACK')
-        .catch(() => {})
+      await client.query('ROLLBACK')
 
       console.error(
         'Error guardando favoritos:',
@@ -2315,9 +2430,10 @@ app.put(
 app.get(
   '/api/health',
   async (req, res) => {
-    let database = false
-    let firstApi = false
-    let currentSeason = null
+    let database = {
+      configured: Boolean(pool),
+      connected: false
+    }
 
     if (pool) {
       try {
@@ -2325,64 +2441,34 @@ app.get(
           'SELECT 1'
         )
 
-        database = true
+        database.connected = true
       } catch (error) {
-        console.error(
-          'Health check PostgreSQL:',
-          error
-        )
-      }
-    }
-
-    if (
-      ftcCredentialsConfigured()
-    ) {
-      try {
-        const data =
-          await ftcFetch('')
-
-        firstApi = true
-
-        currentSeason =
-          data.currentSeason ??
-          data.maxSeason ??
-          null
-      } catch (error) {
-        console.error(
-          'Health check FIRST FTC API:',
+        database.error =
           error.message
-        )
       }
     }
 
     res.json({
       ok: true,
 
-      api: true,
+      service:
+        'Quantum FTC Scouting API',
 
-      firstApi,
-
-      ftcCredentialsConfigured:
-        ftcCredentialsConfigured(),
-
-      currentSeason,
+      firstApi: {
+        configured:
+          ftcCredentialsConfigured()
+      },
 
       database,
 
-      multiuserSync:
-        database,
-
-      source:
-        'FIRST FTC Events API',
-
-      time:
+      timestamp:
         new Date().toISOString()
     })
   }
 )
 
 // ============================================================
-// 404
+// API 404
 // ============================================================
 
 app.use(
@@ -2390,7 +2476,35 @@ app.use(
   (req, res) => {
     res.status(404).json({
       error:
-        'Ruta de API no encontrada'
+        'Endpoint de Quantum FTC no encontrado',
+
+      method:
+        req.method,
+
+      path:
+        req.originalUrl
+    })
+  }
+)
+
+// ============================================================
+// ERROR GENERAL
+// ============================================================
+
+app.use(
+  (error, req, res, next) => {
+    console.error(
+      'Error no controlado:',
+      error
+    )
+
+    if (res.headersSent) {
+      return next(error)
+    }
+
+    res.status(500).json({
+      error:
+        'Error interno del servidor'
     })
   }
 )
@@ -2406,26 +2520,16 @@ app.listen(
       `Quantum FTC Scouting API corriendo en http://localhost:${PORT}`
     )
 
-    if (
+    console.log(
       ftcCredentialsConfigured()
-    ) {
-      console.log(
-        'FIRST FTC Events API: credenciales configuradas'
-      )
-    } else {
-      console.log(
-        'FIRST FTC Events API: faltan FTC_API_USERNAME / FTC_API_TOKEN'
-      )
-    }
+        ? 'FIRST FTC Events API: credenciales configuradas'
+        : 'FIRST FTC Events API: credenciales NO configuradas'
+    )
 
-    if (pool) {
-      console.log(
-        'Sincronización multiusuario: PostgreSQL configurado'
-      )
-    } else {
-      console.log(
-        'Sincronización multiusuario: modo local (falta DATABASE_URL)'
-      )
-    }
+    console.log(
+      pool
+        ? 'Sincronización multiusuario: PostgreSQL configurado'
+        : 'Sincronización multiusuario: PostgreSQL NO configurado'
+    )
   }
 )

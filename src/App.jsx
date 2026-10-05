@@ -8,6 +8,9 @@ const CURRENT_YEAR = new Date().getFullYear()
 const CURRENT_FTC_SEASON = new Date().getMonth() >= 6 ? CURRENT_YEAR : CURRENT_YEAR - 1
 const LATEST_FTC_YEAR = CURRENT_FTC_SEASON
 
+const eventMetricsCache = new Map()
+const previousSeasonAverageOprCache = new Map()
+
 const formatSeasonYears = (seasonYear) => {
   const startYear = Number(seasonYear)
   return `${startYear} - ${startYear + 1}`
@@ -498,28 +501,78 @@ function App() {
   }
 
   const fetchEventTeams = async (eventKey) => {
-    const response = await fetch(`${API_BASE_URL}/api/event/${eventKey}/teams`)
+    if (eventMetricsCache.has(eventKey)) return eventMetricsCache.get(eventKey)
 
-    if (!response.ok) {
-      throw new Error('No se pudieron obtener los equipos del evento')
-    }
+    const request = (async () => {
+      const response = await fetch(`${API_BASE_URL}/api/event/${eventKey}/teams`)
+      if (!response.ok) throw new Error('No se pudieron obtener los equipos del evento')
 
-    const data = await response.json()
-    const teams = Array.isArray(data)
-      ? data
-      : Array.isArray(data.teams)
-        ? data.teams
-        : []
+      const data = await response.json()
+      const teams = Array.isArray(data)
+        ? data
+        : Array.isArray(data.teams) ? data.teams : []
 
-    // En cuanto se cargan los equipos, también cargamos los resultados oficiales
-    // y llenamos OPR/DPR/CCWM antes de mostrar la tabla.
+      try {
+        const eventMatches = await fetchEventMatches(eventKey)
+        return calculateEventMetrics(teams, eventMatches)
+      } catch (error) {
+        console.error('No se pudieron calcular métricas automáticas:', error)
+        return teams
+      }
+    })()
+
+    eventMetricsCache.set(eventKey, request)
     try {
-      const eventMatches = await fetchEventMatches(eventKey)
-      return calculateEventMetrics(teams, eventMatches)
+      return await request
     } catch (error) {
-      console.error('No se pudieron calcular métricas automáticas:', error)
-      return teams
+      eventMetricsCache.delete(eventKey)
+      throw error
     }
+  }
+
+  const getPreviousSeasonAverageOpr = async (teamNumber, currentSeasonYear) => {
+    const previousYear = Number(currentSeasonYear) - 1
+    if (previousYear < FIRST_FTC_YEAR) return null
+
+    const cacheKey = `${teamNumber}-${previousYear}`
+    if (previousSeasonAverageOprCache.has(cacheKey)) {
+      return previousSeasonAverageOprCache.get(cacheKey)
+    }
+
+    const request = (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/team/${teamNumber}/events/${previousYear}`)
+        if (!response.ok) return null
+
+        const data = await response.json()
+        const previousEvents = Array.isArray(data)
+          ? data
+          : Array.isArray(data.events) ? data.events : []
+        const oprValues = []
+
+        for (const previousEvent of previousEvents) {
+          try {
+            const teamsAtEvent = await fetchEventTeams(previousEvent.key)
+            const teamAtEvent = teamsAtEvent.find(
+              (item) => Number(item.teamNumber) === Number(teamNumber)
+            )
+            const opr = Number(teamAtEvent?.opr)
+            if (Number.isFinite(opr)) oprValues.push(opr)
+          } catch (error) {
+            console.warn(`No se pudo calcular OPR histórico de ${teamNumber} en ${previousEvent.key}:`, error)
+          }
+        }
+
+        if (!oprValues.length) return null
+        return oprValues.reduce((sum, value) => sum + value, 0) / oprValues.length
+      } catch (error) {
+        console.warn(`No se pudo calcular el OPR promedio previo de ${teamNumber}:`, error)
+        return null
+      }
+    })()
+
+    previousSeasonAverageOprCache.set(cacheKey, request)
+    return request
   }
 
 const fetchEventMatches = async (eventKey) => {
@@ -578,10 +631,49 @@ const fetchEventMatches = async (eventKey) => {
       const teamData = await teamResponse.json()
       const eventsData = await eventsResponse.json()
 
-      const seasonEvents = eventsData.events || []
+      const seasonEvents = Array.isArray(eventsData)
+        ? eventsData
+        : (eventsData.events || [])
+
+      // Igual que en Quantum Scouting FRC: cada evento del historial del equipo
+      // muestra su rendimiento en ese evento. fetchEventTeams() ya agrega el
+      // ranking/record oficial y calcula OPR, DPR y CCWM desde los matches.
+      const enrichedSeasonEvents = await Promise.all(
+        seasonEvents.map(async (teamEvent) => {
+          try {
+            const teamsAtEvent = await fetchEventTeams(teamEvent.key)
+            const eventTeam = teamsAtEvent.find(
+              (item) => Number(item.teamNumber) === Number(cleanNumber)
+            )
+
+            return {
+              ...teamEvent,
+              stats: eventTeam
+                ? {
+                    rank: eventTeam.rank ?? null,
+                    record: eventTeam.record ?? null,
+                    rs: eventTeam.rs ?? null,
+                    matchPoints: eventTeam.matchPoints ?? null,
+                    basePoints: eventTeam.basePoints ?? null,
+                    autoPoints: eventTeam.autoPoints ?? null,
+                    opr: eventTeam.opr ?? null,
+                    dpr: eventTeam.dpr ?? null,
+                    ccwm: eventTeam.ccwm ?? null
+                  }
+                : null
+            }
+          } catch (error) {
+            console.error(
+              `No se pudieron cargar estadísticas de ${teamEvent.key}:`,
+              error
+            )
+            return { ...teamEvent, stats: null }
+          }
+        })
+      )
 
       setTeam(teamData)
-      setTeamEvents(seasonEvents)
+      setTeamEvents(enrichedSeasonEvents)
       setTeamInput(cleanNumber)
 
       // Cargar el historial de matches del equipo en sus eventos de la temporada.
@@ -632,8 +724,17 @@ const fetchEventMatches = async (eventKey) => {
     setTeamsLoading(true)
     try {
       const teams = await fetchEventTeams(event.key)
+      const eventYear = Number(String(event.key).slice(0, 4)) || Number(year)
+      const averageOprYear = eventYear - 1
+      const teamsWithPreviousOpr = await Promise.all(
+        teams.map(async (item) => ({
+          ...item,
+          averageOpr: await getPreviousSeasonAverageOpr(item.teamNumber, eventYear),
+          averageOprYear
+        }))
+      )
       setSelectedEvent(event)
-      setEventTeams(teams)
+      setEventTeams(teamsWithPreviousOpr)
       setTeamSearch('')
       navigateTo('teams')
     } catch (error) {
@@ -1079,8 +1180,8 @@ const fetchEventMatches = async (eventKey) => {
         const games = Number(item.record?.wins || 0) + Number(item.record?.losses || 0) + Number(item.record?.ties || 0)
         return games ? (Number(item.record?.wins || 0) + Number(item.record?.ties || 0) * .5) / games : null
       }
-      if (teamSort.key === 'rankingPoints') return item.rankingPoints
-      if (teamSort.key === 'qualifyingPoints') return item.qualifyingPoints
+      if (teamSort.key === 'rs') return item.rs
+      if (teamSort.key === 'matchPoints') return item.matchPoints
       if (teamSort.key === 'opr') return item.opr
       if (teamSort.key === 'dpr') return item.dpr
       if (teamSort.key === 'ccwm') return item.ccwm
@@ -1212,8 +1313,8 @@ const fetchEventMatches = async (eventKey) => {
 
     const value = (item) => {
       const scouting = teamScoutingStats(item.teamNumber, pickEventKey)
-      if (pickSort === 'rankingPoints') return Number(item.rankingPoints ?? -Infinity)
-      if (pickSort === 'qualifyingPoints') return Number(item.qualifyingPoints ?? -Infinity)
+      if (pickSort === 'rs') return Number(item.rs ?? -Infinity)
+      if (pickSort === 'matchPoints') return Number(item.matchPoints ?? -Infinity)
       if (pickSort === 'opr') return Number(item.opr ?? -Infinity)
       if (pickSort === 'ccwm') return Number(item.ccwm ?? -Infinity)
       if (pickSort === 'defense') return Number(scouting.defense ?? -Infinity)
@@ -1943,11 +2044,17 @@ const fetchEventMatches = async (eventKey) => {
                     <SortableHeader label="Team" sortKey="teamNumber" sort={teamSort} onSort={toggleTeamSort} />
                     <SortableHeader label="Nombre" sortKey="name" sort={teamSort} onSort={toggleTeamSort} preferredDirection="asc" />
                     <SortableHeader label="Record" sortKey="record" sort={teamSort} onSort={toggleTeamSort} />
-                    <SortableHeader label="RP" sortKey="rankingPoints" sort={teamSort} onSort={toggleTeamSort} />
-                    <SortableHeader label="QP" sortKey="qualifyingPoints" sort={teamSort} onSort={toggleTeamSort} />
+                    <SortableHeader label="RS" sortKey="rs" sort={teamSort} onSort={toggleTeamSort} />
+                    <SortableHeader label="Match Pts" sortKey="matchPoints" sort={teamSort} onSort={toggleTeamSort} />
                     <SortableHeader label="OPR" sortKey="opr" sort={teamSort} onSort={toggleTeamSort} />
                     <SortableHeader label="DPR" sortKey="dpr" sort={teamSort} onSort={toggleTeamSort} />
                     <SortableHeader label="CCWM" sortKey="ccwm" sort={teamSort} onSort={toggleTeamSort} />
+                    <SortableHeader
+                      label={`Prom OPR ${Number(String(selectedEvent?.key || year).slice(0, 4)) - 1}`}
+                      sortKey="averageOpr"
+                      sort={teamSort}
+                      onSort={toggleTeamSort}
+                    />
                     <SortableHeader label="Scout" sortKey="scout" sort={teamSort} onSort={toggleTeamSort} />
                     
                   </tr>
@@ -1984,8 +2091,8 @@ const fetchEventMatches = async (eventKey) => {
                         <td onClick={() => openTeam(item.teamNumber)}>
                           {formatRecord(item.record)}
                         </td>
-                        <td onClick={() => openTeam(item.teamNumber)}>{formatNumber(item.rankingPoints)}</td>
-                        <td onClick={() => openTeam(item.teamNumber)}>{formatNumber(item.qualifyingPoints)}</td>
+                        <td onClick={() => openTeam(item.teamNumber)}>{formatNumber(item.rs)}</td>
+                        <td onClick={() => openTeam(item.teamNumber)}>{formatNumber(item.matchPoints)}</td>
                         <td onClick={() => openTeam(item.teamNumber)}>
                           {formatNumber(item.opr)}
                         </td>
@@ -1994,6 +2101,9 @@ const fetchEventMatches = async (eventKey) => {
                         </td>
                         <td onClick={() => openTeam(item.teamNumber)}>
                           {formatNumber(item.ccwm)}
+                        </td>
+                        <td onClick={() => openTeam(item.teamNumber)}>
+                          {formatNumber(item.averageOpr)}
                         </td>
                         <td>{scout.count}</td>
                         
@@ -2127,12 +2237,20 @@ const fetchEventMatches = async (eventKey) => {
                                 value={formatRecord(item.record)}
                               />
                               <CompareStat
-                                label="Ranking Points (RP)"
-                                value={formatNumber(item.rankingPoints)}
+                                label="RS"
+                                value={formatNumber(item.rs)}
                               />
                               <CompareStat
-                                label="Qualifying Points (QP)"
-                                value={formatNumber(item.qualifyingPoints)}
+                                label="Match Points"
+                                value={formatNumber(item.matchPoints)}
+                              />
+                              <CompareStat
+                                label="Base Points"
+                                value={formatNumber(item.basePoints)}
+                              />
+                              <CompareStat
+                                label="Auto Points"
+                                value={formatNumber(item.autoPoints)}
                               />
                               <CompareStat
                                 label="OPR (analítica)"
@@ -2237,8 +2355,8 @@ const fetchEventMatches = async (eventKey) => {
                 onChange={(e) => setPickSort(e.target.value)}
               >
                 <option value="rank">Rank oficial</option>
-                <option value="rankingPoints">Ranking Points (RP)</option>
-                <option value="qualifyingPoints">Qualifying Points (QP)</option>
+                <option value="rs">RS</option>
+                <option value="matchPoints">Match Points</option>
                 <option value="opr">OPR (analítica)</option>
                 <option value="ccwm">CCWM</option>
                 <option value="defense">Defensa scouting</option>
@@ -2262,8 +2380,8 @@ const fetchEventMatches = async (eventKey) => {
                       <th>Rank</th>
                       <th>Team</th>
                       <th>Nombre</th>
-                      <th>RP</th>
-                      <th>QP</th>
+                      <th>RS</th>
+                      <th>Match Pts</th>
                       <th>OPR</th>
                       <th>CCWM</th>
                       <th>Defensa</th>
@@ -2295,8 +2413,8 @@ const fetchEventMatches = async (eventKey) => {
                             {item.teamNumber}
                           </td>
                           <td>{item.name}</td>
-                          <td>{formatNumber(item.rankingPoints)}</td>
-                          <td>{formatNumber(item.qualifyingPoints)}</td>
+                          <td>{formatNumber(item.rs)}</td>
+                          <td>{formatNumber(item.matchPoints)}</td>
                           <td>{formatNumber(item.opr)}</td>
                           <td>{formatNumber(item.ccwm)}</td>
                           <td>{formatNumber(scout.defense)}</td>
