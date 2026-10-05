@@ -2006,40 +2006,33 @@ app.get(
       ])
 
       res.json({
-        scouting:
-          scoutingResult.rows.map(
-            (row) => ({
-              id: row.id,
-              ...row.payload,
-              createdAt:
-                row.created_at,
-              updatedAt:
-                row.updated_at
-            })
-          ),
-
-        pit:
-          pitResult.rows.map(
-            (row) => ({
-              id: row.id,
-              eventKey:
-                row.event_key,
-              teamNumber:
-                row.team_number,
-              ...row.payload,
-              createdAt:
-                row.created_at,
-              updatedAt:
-                row.updated_at
-            })
-          ),
-
-        favorites:
-          favoritesResult.rows.map(
-            (row) =>
-              Number(row.team_number)
-          )
+  scoutingRecords:
+    scoutingResult.rows.map(
+      (row) => ({
+        id: row.id,
+        ...row.payload,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
       })
+    ),
+
+  pitRecords:
+    pitResult.rows.map(
+      (row) => ({
+        id: row.id,
+        eventKey: row.event_key,
+        teamNumber: row.team_number,
+        ...row.payload,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      })
+    ),
+
+  favorites:
+    favoritesResult.rows.map(
+      (row) => Number(row.team_number)
+    )
+})
     } catch (error) {
       console.error(
         'Error leyendo sync:',
